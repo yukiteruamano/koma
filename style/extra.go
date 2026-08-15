@@ -11,5 +11,5 @@ var (
 )
 
 func Tag(foreground, background lipgloss.Color) func(string) string {
-	return NewColored(foreground, background).Padding(0, 1).Render
+	return func(s string) string { return NewColored(foreground, background).Padding(0, 1).Render(s) }
 }

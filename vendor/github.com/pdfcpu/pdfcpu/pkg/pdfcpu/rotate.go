@@ -16,11 +16,26 @@ limitations under the License.
 
 package pdfcpu
 
-import "github.com/pdfcpu/pdfcpu/pkg/log"
+import (
+	"fmt"
 
-func rotatePage(xRefTable *XRefTable, i, j int) error {
+	"github.com/pdfcpu/pdfcpu/pkg/log"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
+)
 
-	log.Debug.Printf("rotate page:%d\n", i)
+func composePageRotation(current, delta int) int {
+	rotation := (current%360 + delta%360) % 360
+	if rotation < 0 {
+		rotation += 360
+	}
+	return rotation
+}
+
+func rotatePage(xRefTable *model.XRefTable, i, j int) error {
+	if log.DebugEnabled() {
+		log.Debug.Printf("rotate page:%d\n", i)
+	}
 
 	consolidateRes := false
 	d, _, inhPAttrs, err := xRefTable.PageDict(i, consolidateRes)
@@ -28,19 +43,18 @@ func rotatePage(xRefTable *XRefTable, i, j int) error {
 		return err
 	}
 
-	d.Update("Rotate", Integer((inhPAttrs.Rotate+j)%360))
+	d.Update("Rotate", types.Integer(composePageRotation(inhPAttrs.Rotate, j)))
 
 	return nil
 }
 
 // RotatePages rotates all selected pages by a multiple of 90 degrees.
-func RotatePages(ctx *Context, selectedPages IntSet, rotation int) error {
-
+func RotatePages(ctx *model.Context, selectedPages types.IntSet, rotation int) error {
 	for k, v := range selectedPages {
 		if v {
 			err := rotatePage(ctx.XRefTable, k, rotation)
 			if err != nil {
-				return err
+				return fmt.Errorf("page %d: page dict: %w", k, err)
 			}
 		}
 	}

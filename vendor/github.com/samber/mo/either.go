@@ -1,10 +1,15 @@
 package mo
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/gob"
+	"errors"
+	"fmt"
+)
 
-var eitherShouldBeLeftOrRight = fmt.Errorf("either should be Left or Right")
-var eitherMissingLeftValue = fmt.Errorf("no such Left value")
-var eitherMissingRightValue = fmt.Errorf("no such Right value")
+var errEitherShouldBeLeftOrRight = fmt.Errorf("either should be Left or Right")
+var errEitherMissingLeftValue = fmt.Errorf("no such Left value")
+var errEitherMissingRightValue = fmt.Errorf("no such Right value")
 
 // Left builds the left side of the Either struct, as opposed to the Right side.
 func Left[L any, R any](value L) Either[L, R] {
@@ -60,7 +65,7 @@ func (e Either[L, R]) Right() (R, bool) {
 // MustLeft returns left value of a Either struct or panics.
 func (e Either[L, R]) MustLeft() L {
 	if !e.IsLeft() {
-		panic(eitherMissingLeftValue)
+		panic(errEitherMissingLeftValue)
 	}
 
 	return e.left
@@ -69,7 +74,7 @@ func (e Either[L, R]) MustLeft() L {
 // MustRight returns right value of a Either struct or panics.
 func (e Either[L, R]) MustRight() R {
 	if !e.IsRight() {
-		panic(eitherMissingRightValue)
+		panic(errEitherMissingRightValue)
 	}
 
 	return e.right
@@ -119,7 +124,7 @@ func (e Either[L, R]) RightOrEmpty() R {
 // Swap returns the left value in Right and vice versa.
 func (e Either[L, R]) Swap() Either[R, L] {
 	if e.IsLeft() {
-		return Right[R, L](e.left)
+		return Right[R](e.left)
 	}
 
 	return Left[R, L](e.right)
@@ -142,7 +147,7 @@ func (e Either[L, R]) Match(onLeft func(L) Either[L, R], onRight func(R) Either[
 		return onRight(e.right)
 	}
 
-	panic(eitherShouldBeLeftOrRight)
+	panic(errEitherShouldBeLeftOrRight)
 }
 
 // MapLeft executes the given function, if Either is of type Left, and returns result.
@@ -153,7 +158,7 @@ func (e Either[L, R]) MapLeft(mapper func(L) Either[L, R]) Either[L, R] {
 		return Right[L, R](e.right)
 	}
 
-	panic(eitherShouldBeLeftOrRight)
+	panic(errEitherShouldBeLeftOrRight)
 }
 
 // MapRight executes the given function, if Either is of type Right, and returns result.
@@ -164,5 +169,80 @@ func (e Either[L, R]) MapRight(mapper func(R) Either[L, R]) Either[L, R] {
 		return mapper(e.right)
 	}
 
-	panic(eitherShouldBeLeftOrRight)
+	panic(errEitherShouldBeLeftOrRight)
+}
+
+// leftValue returns left value of a Either struct.(implementation of Foldable interface)
+//
+//nolint:unused
+func (e Either[L, R]) leftValue() L {
+	return e.left
+}
+
+// rightValue returns right value of a Either struct.(implementation of Foldable interface)
+//
+//nolint:unused
+func (e Either[L, R]) rightValue() R {
+	return e.right
+}
+
+// hasLeft returns true if the Result represents an error state.
+//
+//nolint:unused
+func (e Either[L, R]) hasLeftValue() bool {
+	return e.isLeft
+}
+
+// MarshalBinary encodes Either into binary form.
+func (e Either[L, R]) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	if e.isLeft {
+		if err := enc.Encode(e.left); err != nil {
+			return []byte{}, err
+		}
+		return append([]byte{1}, buf.Bytes()...), nil
+	}
+
+	if err := enc.Encode(e.right); err != nil {
+		return []byte{}, err
+	}
+	return append([]byte{0}, buf.Bytes()...), nil
+}
+
+// UnmarshalBinary decodes Either from binary form.
+func (e *Either[L, R]) UnmarshalBinary(data []byte) error {
+	if len(data) == 0 {
+		return errors.New("Either[L, R].UnmarshalBinary: no data")
+	}
+
+	buf := bytes.NewBuffer(data[1:])
+	dec := gob.NewDecoder(buf)
+
+	if data[0] == 1 {
+		if err := dec.Decode(&e.left); err != nil {
+			return err
+		}
+		e.isLeft = true
+		e.right = empty[R]()
+		return nil
+	}
+
+	if err := dec.Decode(&e.right); err != nil {
+		return err
+	}
+	e.isLeft = false
+	e.left = empty[L]()
+	return nil
+}
+
+// GobEncode implements the gob.GobEncoder interface.
+func (e Either[L, R]) GobEncode() ([]byte, error) {
+	return e.MarshalBinary()
+}
+
+// GobDecode implements the gob.GobDecoder interface.
+func (e *Either[L, R]) GobDecode(data []byte) error {
+	return e.UnmarshalBinary(data)
 }

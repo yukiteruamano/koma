@@ -49,7 +49,7 @@ func (s *luaSource) call(fn string, ret lua.LValueType, args ...lua.LValue) (lua
 	val := s.state.Get(-1)
 
 	if val.Type() != ret {
-		s.state.RaiseError(fn + " was expected to return a " + ret.String() + ", got " + val.Type().String())
+		s.state.RaiseError("%s", fn + " was expected to return a " + ret.String() + ", got " + val.Type().String())
 	}
 
 	return val, nil

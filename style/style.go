@@ -11,20 +11,18 @@ func NewColored(foreground, background lipgloss.Color) lipgloss.Style {
 }
 
 func Fg(color lipgloss.Color) func(string) string {
-	return NewColored(color, "").Render
+	return func(s string) string { return NewColored(color, "").Render(s) }
 }
 
 func Bg(color lipgloss.Color) func(string) string {
-	return NewColored("", color).Render
+	return func(s string) string { return NewColored("", color).Render(s) }
 }
 
 func Truncate(max int) func(string) string {
-	return New().Width(max).Render
+	return func(s string) string { return New().Width(max).Render(s) }
 }
 
-var (
-	Faint     = New().Faint(true).Render
-	Bold      = New().Bold(true).Render
-	Italic    = New().Italic(true).Render
-	Underline = New().Underline(true).Render
-)
+func Faint(s string) string     { return New().Faint(true).Render(s) }
+func Bold(s string) string      { return New().Bold(true).Render(s) }
+func Italic(s string) string    { return New().Italic(true).Render(s) }
+func Underline(s string) string { return New().Underline(true).Render(s) }

@@ -9,6 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/history"
@@ -18,13 +21,30 @@ import (
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/samber/lo"
-	"github.com/samber/mo"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
+	"slices"
 	"strings"
 	"time"
 )
+
+// progressMsg reports download progress from a worker goroutine.
+type progressMsg struct {
+	status string
+}
+
+// chapterDownloadResult reports the outcome of a finished chapter download.
+type chapterDownloadResult struct {
+	chapter *source.Chapter
+	err     error
+}
+
+// downloadError reports a fatal download error (stop-on-error mode).
+type downloadError struct {
+	err error
+}
+
+// downloadDoneMsg delays the transition to the done state until the progress
+// bar has rendered to the end.
+type downloadDoneMsg struct{}
 
 type statefulBubble struct {
 	state         state
@@ -58,7 +78,8 @@ type statefulBubble struct {
 	fetchedAnilistMangasChannel chan []*anilist.Manga
 	closestAnilistMangaChannel  chan *anilist.Manga
 	chapterReadChannel          chan struct{}
-	chapterDownloadChannel      chan struct{}
+	chapterDownloadChannel      chan chapterDownloadResult
+	progressChannel             chan progressMsg
 	errorChannel                chan error
 
 	progressStatus string
@@ -185,8 +206,9 @@ func newBubble() *statefulBubble {
 		fetchedAnilistMangasChannel: make(chan []*anilist.Manga),
 		closestAnilistMangaChannel:  make(chan *anilist.Manga),
 		chapterReadChannel:          make(chan struct{}),
-		chapterDownloadChannel:      make(chan struct{}),
-		errorChannel:                make(chan error),
+		chapterDownloadChannel:      make(chan chapterDownloadResult, 8),
+		progressChannel:             make(chan progressMsg, 32),
+		errorChannel:                make(chan error, 8),
 
 		selectedProviders:  make(map[*provider.Provider]struct{}),
 		selectedChapters:   make(map[*source.Chapter]struct{}),
@@ -302,10 +324,10 @@ func (b *statefulBubble) loadProviders() tea.Cmd {
 			internal: p,
 		})
 	}
-	slices.SortFunc(items, func(a, b list.Item) bool {
+	slices.SortFunc(items, func(a, b list.Item) int {
 		// temporary workaround for placing mangadex second because it is not stable for now
 		// but, you know, there is nothing more permanent than a temporary solution
-		return strings.Compare(a.FilterValue(), b.FilterValue()) > 0
+		return strings.Compare(b.FilterValue(), a.FilterValue())
 	})
 
 	var customItems []list.Item
@@ -314,8 +336,8 @@ func (b *statefulBubble) loadProviders() tea.Cmd {
 			internal: p,
 		})
 	}
-	slices.SortFunc(customItems, func(a, b list.Item) bool {
-		return strings.Compare(a.FilterValue(), b.FilterValue()) < 0
+	slices.SortFunc(customItems, func(a, b list.Item) int {
+		return strings.Compare(a.FilterValue(), b.FilterValue())
 	})
 
 	// built-in providers should come first
@@ -329,11 +351,11 @@ func (b *statefulBubble) loadHistory() (tea.Cmd, error) {
 	}
 
 	chapters := lo.Values(saved)
-	slices.SortFunc(chapters, func(a, b *history.SavedChapter) bool {
+	slices.SortFunc(chapters, func(a, b *history.SavedChapter) int {
 		if a.MangaName == b.MangaName {
-			return a.Name < b.Name
+			return strings.Compare(a.Name, b.Name)
 		}
-		return a.MangaName < b.MangaName
+		return strings.Compare(a.MangaName, b.MangaName)
 	})
 
 	var items []list.Item

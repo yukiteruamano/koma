@@ -1,11 +1,11 @@
 package inline
 
 import (
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/downloader"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/source"
-	"github.com/spf13/viper"
 	"os"
 )
 
@@ -44,12 +44,7 @@ func Run(options *Options) (err error) {
 			}
 		}
 
-		marshalled, err := asJson(mangas, options)
-		if err != nil {
-			return err
-		}
-
-		_, err = options.Out.Write(marshalled)
+		err := asJson(mangas, options, options.Out)
 		return err
 	}
 
@@ -62,12 +57,7 @@ func Run(options *Options) (err error) {
 			}
 		}
 
-		marshalled, err := asJson(mangas, options)
-		if err != nil {
-			return err
-		}
-
-		_, err = options.Out.Write(marshalled)
+		err := asJson(mangas, options, options.Out)
 		return err
 	}
 
@@ -75,13 +65,7 @@ func Run(options *Options) (err error) {
 
 	if len(mangas) == 0 {
 		if options.Json {
-			marshalled, err := asJson([]*source.Manga{}, options)
-			if err != nil {
-				return err
-			}
-
-			_, err = options.Out.Write(marshalled)
-			return err
+			return asJson([]*source.Manga{}, options, options.Out)
 		}
 
 		return nil
@@ -91,13 +75,7 @@ func Run(options *Options) (err error) {
 
 	if manga == nil {
 		if options.Json {
-			marshalled, err := asJson([]*source.Manga{}, options)
-			if err != nil {
-				return err
-			}
-
-			_, err = options.Out.Write(marshalled)
-			return err
+			return asJson([]*source.Manga{}, options, options.Out)
 		}
 
 		return nil
@@ -120,13 +98,7 @@ func Run(options *Options) (err error) {
 			return err
 		}
 
-		marshalled, err := asJson([]*source.Manga{manga}, options)
-		if err != nil {
-			return err
-		}
-
-		_, err = options.Out.Write(marshalled)
-		return err
+		return asJson([]*source.Manga{manga}, options, options.Out)
 	}
 
 	for _, chapter := range chapters {

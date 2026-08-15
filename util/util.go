@@ -2,11 +2,11 @@ package util
 
 import (
 	"fmt"
+	"github.com/samber/lo"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
-	"github.com/samber/lo"
-	"github.com/spf13/viper"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/term"
 	"os"
@@ -29,10 +29,13 @@ var replacers = []lo.Tuple2[*regexp.Regexp, string]{
 	{regexp.MustCompile(`^[_\-.]+|[_\-.]+$`), ""},
 }
 
+// whitespace is hoisted so SanitizeFilename does not recompile a regexp on every call.
+var whitespace = regexp.MustCompile(`\s`)
+
 // SanitizeFilename will remove all invalid characters from a path.
 func SanitizeFilename(filename string) string {
 	if !viper.IsSet(key.DownloaderEscapeWhitespace) || viper.GetBool(key.DownloaderEscapeWhitespace) {
-		filename = regexp.MustCompile(`\s`).ReplaceAllString(filename, "_")
+		filename = whitespace.ReplaceAllString(filename, "_")
 	}
 	for _, re := range replacers {
 		filename = re.A.ReplaceAllString(filename, re.B)

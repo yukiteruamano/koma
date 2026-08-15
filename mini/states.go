@@ -2,16 +2,16 @@ package mini
 
 import (
 	"fmt"
+	"github.com/samber/lo"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/downloader"
 	"github.com/yukiteruamano/koma/history"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/provider"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/samber/lo"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -47,8 +47,8 @@ func (m *mini) handleSourceSelectState() error {
 		providers = append(providers, provider.Builtins()...)
 		providers = append(providers, provider.Customs()...)
 
-		slices.SortFunc(providers, func(a *provider.Provider, b *provider.Provider) bool {
-			return strings.Compare(a.String(), b.String()) < 0
+		slices.SortFunc(providers, func(a *provider.Provider, b *provider.Provider) int {
+			return strings.Compare(a.String(), b.String())
 		})
 
 		title("Select Source")

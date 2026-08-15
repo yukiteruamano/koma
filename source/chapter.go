@@ -2,19 +2,21 @@ package source
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/dustin/go-humanize"
+	"github.com/samber/mo"
+	"github.com/sourcegraph/conc/pool"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/samber/mo"
-	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-	"time"
 )
 
 // Chapter is a struct that represents a chapter of a manga.
@@ -44,11 +46,37 @@ func (c *Chapter) String() string {
 	return c.Name
 }
 
-// DownloadPages downloads the Pages contents of the Chapter.
+// DownloadPages downloads the Pages contents of the Chapter into memory.
 // Pages needs to be set before calling this function.
-func (c *Chapter) DownloadPages(temp bool, progress func(string)) (err error) {
+func (c *Chapter) DownloadPages(temp bool, progress func(string)) error {
+	return c.downloadAll(func(page *Page) error { return page.Download() }, temp, progress)
+}
+
+// DownloadPagesTo streams the Pages contents of the Chapter straight to the
+// given directory on disk, keeping memory bounded.
+// Pages needs to be set before calling this function.
+func (c *Chapter) DownloadPagesTo(dir string, temp bool, progress func(string)) error {
+	if err := filesystem.Api().MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+
+	return c.downloadAll(func(page *Page) error {
+		return page.DownloadTo(filepath.Join(dir, page.Filename()))
+	}, temp, progress)
+}
+
+// downloadAll downloads every page using the given download function.
+// It runs sequentially when downloader.async is off, otherwise through a
+// bounded worker pool sized by downloader.concurrency.
+func (c *Chapter) downloadAll(download func(*Page) error, temp bool, progress func(string)) error {
 	if len(c.Pages) == 0 {
 		return fmt.Errorf("chapter %q has no pages", c.Name)
+	}
+
+	for i, page := range c.Pages {
+		if page == nil {
+			return fmt.Errorf("page #%d is nil, aborting download", i)
+		}
 	}
 
 	c.size = 0
@@ -60,36 +88,56 @@ func (c *Chapter) DownloadPages(temp bool, progress func(string)) (err error) {
 		)
 	}
 
-	progress(status())
-	wg := sync.WaitGroup{}
-	wg.Add(len(c.Pages))
-
-	for i, page := range c.Pages {
-		if page == nil {
-			return fmt.Errorf("page #%d is nil, aborting download", i)
-		}
-
-		d := func(page *Page) {
-			defer wg.Done()
-
-			// if at any point, an error is encountered, stop downloading other pages
-			if err != nil {
-				return
+	// Sequential path (downloader.async off).
+	if !viper.GetBool(key.DownloaderAsync) {
+		progress(status())
+		for _, page := range c.Pages {
+			if err := download(page); err != nil {
+				c.isDownloaded = mo.Some(false)
+				return err
 			}
-
-			err = page.Download()
 			c.size += page.Size
 			progress(status())
 		}
 
-		if viper.GetBool(key.DownloaderAsync) {
-			go d(page)
-		} else {
-			d(page)
-		}
+		c.isDownloaded = mo.Some(!temp)
+		return nil
 	}
 
-	wg.Wait()
+	concurrency := viper.GetInt(key.DownloaderConcurrency)
+	if concurrency < 1 {
+		concurrency = 1
+	}
+
+	progress(status())
+
+	// A single goroutine applies size deltas and reports progress, so workers
+	// never touch shared state concurrently and progress callbacks are serialized.
+	sizes := make(chan uint64, concurrency)
+	progressDone := make(chan struct{})
+	go func() {
+		defer close(progressDone)
+		for delta := range sizes {
+			c.size += delta
+			progress(status())
+		}
+	}()
+
+	p := pool.New().WithMaxGoroutines(concurrency).WithErrors().WithFirstError()
+	for _, page := range c.Pages {
+		page := page
+		p.Go(func() error {
+			if err := download(page); err != nil {
+				return err
+			}
+			sizes <- page.Size
+			return nil
+		})
+	}
+
+	err := p.Wait()
+	close(sizes)
+	<-progressDone
 
 	if err != nil {
 		c.isDownloaded = mo.Some(false)
@@ -97,29 +145,26 @@ func (c *Chapter) DownloadPages(temp bool, progress func(string)) (err error) {
 	}
 
 	c.isDownloaded = mo.Some(!temp)
-	return
+	return nil
 }
 
 // formattedName of the chapter according to the template in the config.
 func (c *Chapter) formattedName() (name string) {
-	name = viper.GetString(key.DownloaderChapterNameTemplate)
+	template := viper.GetString(key.DownloaderChapterNameTemplate)
 
 	var sourceName string
 	if c.Source() != nil {
 		sourceName = c.Source().Name()
 	}
 
-	for variable, value := range map[string]string{
-		"manga":          c.Manga.Name,
-		"chapter":        c.Name,
-		"index":          fmt.Sprintf("%d", c.Index),
-		"padded-index":   fmt.Sprintf("%04d", c.Index),
-		"chapters-count": fmt.Sprintf("%d", len(c.Manga.Chapters)),
-		"volume":         c.Volume,
-		"source":         sourceName,
-	} {
-		name = strings.ReplaceAll(name, fmt.Sprintf("{%s}", variable), value)
-	}
+	// Ordered, single-style replacements without a per-call map.
+	name = strings.ReplaceAll(template, "{manga}", c.Manga.Name)
+	name = strings.ReplaceAll(name, "{chapter}", c.Name)
+	name = strings.ReplaceAll(name, "{index}", strconv.Itoa(int(c.Index)))
+	name = strings.ReplaceAll(name, "{padded-index}", fmt.Sprintf("%04d", c.Index))
+	name = strings.ReplaceAll(name, "{chapters-count}", strconv.Itoa(len(c.Manga.Chapters)))
+	name = strings.ReplaceAll(name, "{volume}", c.Volume)
+	name = strings.ReplaceAll(name, "{source}", sourceName)
 
 	return
 }

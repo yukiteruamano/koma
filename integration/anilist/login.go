@@ -56,7 +56,7 @@ func (a *Anilist) login() error {
 	req.Header.Set("Accept", "application/json")
 
 	// send request
-	resp, err := network.Client.Do(req)
+	resp, err := network.Do(req)
 
 	// check for error
 	if err != nil {

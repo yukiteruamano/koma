@@ -16,10 +16,14 @@ limitations under the License.
 
 package validate
 
-import pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+import (
+	"fmt"
 
-func validateMinimumBitDepthDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
+)
 
+func validateMinimumBitDepthDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see table 269
 
 	dictName := "minBitDepthDict"
@@ -42,8 +46,7 @@ func validateMinimumBitDepthDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVers
 	return err
 }
 
-func validateMinimumScreenSizeDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMinimumScreenSizeDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see table 269
 
 	dictName := "minBitDepthDict"
@@ -55,7 +58,7 @@ func validateMinimumScreenSizeDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVe
 	}
 
 	// V, required, integer array, length 2
-	_, err = validateIntegerArrayEntry(xRefTable, d, dictName, "V", REQUIRED, sinceVersion, func(a pdf.Array) bool { return len(a) == 2 })
+	_, err = validateIntegerArrayEntry(xRefTable, d, dictName, "V", REQUIRED, sinceVersion, func(a types.Array) bool { return len(a) == 2 })
 	if err != nil {
 		return err
 	}
@@ -66,8 +69,7 @@ func validateMinimumScreenSizeDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVe
 	return err
 }
 
-func validateSoftwareIdentifierDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateSoftwareIdentifierDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see table 292
 
 	dictName := "swIdDict"
@@ -114,61 +116,62 @@ func validateSoftwareIdentifierDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceV
 	return err
 }
 
-func validateMediaCriteriaDictEntryD(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, required bool, sinceVersion pdf.Version) error {
-
+func validateMediaCriteriaDictEntryD(xRefTable *model.XRefTable, d types.Dict, dictName string, required bool, sinceVersion model.Version) error {
+	rawEntry := d["D"]
 	d1, err := validateDictEntry(xRefTable, d, dictName, "D", required, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "D", rawEntry), err)
 	}
 
 	if d1 != nil {
 		err = validateMinimumBitDepthDict(xRefTable, d1, sinceVersion)
+		if err != nil {
+			return fmt.Errorf("%s: %w", dictEntryContext(dictName, "D", rawEntry), err)
+		}
 	}
 
-	return err
+	return nil
 }
 
-func validateMediaCriteriaDictEntryZ(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, required bool, sinceVersion pdf.Version) error {
-
+func validateMediaCriteriaDictEntryZ(xRefTable *model.XRefTable, d types.Dict, dictName string, required bool, sinceVersion model.Version) error {
+	rawEntry := d["Z"]
 	d1, err := validateDictEntry(xRefTable, d, dictName, "Z", required, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "Z", rawEntry), err)
 	}
 
 	if d1 != nil {
 		err = validateMinimumScreenSizeDict(xRefTable, d1, sinceVersion)
+		if err != nil {
+			return fmt.Errorf("%s: %w", dictEntryContext(dictName, "Z", rawEntry), err)
+		}
 	}
 
-	return err
+	return nil
 }
 
-func validateMediaCriteriaDictEntryV(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, required bool, sinceVersion pdf.Version) error {
-
+func validateMediaCriteriaDictEntryV(xRefTable *model.XRefTable, d types.Dict, dictName string, required bool, sinceVersion model.Version) error {
 	a, err := validateArrayEntry(xRefTable, d, dictName, "V", required, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.V: %w", dictName, err)
 	}
 
-	if a != nil {
+	for i, v := range a {
 
-		for _, v := range a {
+		if v == nil {
+			continue
+		}
 
-			if v == nil {
-				continue
-			}
+		d, err := xRefTable.DereferenceDict(v)
+		if err != nil {
+			return fmt.Errorf("%s.V[%d]: dereference software identifier dict: %w", dictName, i, err)
+		}
 
-			d, err := xRefTable.DereferenceDict(v)
+		if d != nil {
+			err = validateSoftwareIdentifierDict(xRefTable, d, sinceVersion)
 			if err != nil {
-				return err
+				return fmt.Errorf("%s.V[%d]: %w", dictName, i, err)
 			}
-
-			if d != nil {
-				err = validateSoftwareIdentifierDict(xRefTable, d, sinceVersion)
-				if err != nil {
-					return err
-				}
-			}
-
 		}
 
 	}
@@ -176,8 +179,7 @@ func validateMediaCriteriaDictEntryV(xRefTable *pdf.XRefTable, d pdf.Dict, dictN
 	return nil
 }
 
-func validateMediaCriteriaDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaCriteriaDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see table 268
 
 	dictName := "mediaCritDict"
@@ -237,7 +239,7 @@ func validateMediaCriteriaDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersio
 	}
 
 	// P, optional, array
-	_, err = validateNameArrayEntry(xRefTable, d, dictName, "P", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 1 || len(a) == 2 })
+	_, err = validateNameArrayEntry(xRefTable, d, dictName, "P", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 1 || len(a) == 2 })
 	if err != nil {
 		return err
 	}
@@ -248,8 +250,7 @@ func validateMediaCriteriaDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersio
 	return err
 }
 
-func validateMediaPermissionsDict(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, sinceVersion pdf.Version) error {
-
+func validateMediaPermissionsDict(xRefTable *model.XRefTable, d types.Dict, dictName string, sinceVersion model.Version) error {
 	// see table 275
 	d1, err := validateDictEntry(xRefTable, d, dictName, "P", OPTIONAL, sinceVersion, nil)
 	if err != nil || d1 == nil {
@@ -266,15 +267,14 @@ func validateMediaPermissionsDict(xRefTable *pdf.XRefTable, d pdf.Dict, dictName
 
 	// TF, optional, ASCII string
 	validateTempFilePolicy := func(s string) bool {
-		return pdf.MemberOf(s, []string{"TEMPNEVER", "TEMPEXTRACT", "TEMPACCESS", "TEMPALWAYS"})
+		return types.MemberOf(s, []string{"TEMPNEVER", "TEMPEXTRACT", "TEMPACCESS", "TEMPALWAYS"})
 	}
 	_, err = validateStringEntry(xRefTable, d1, dictName, "TF", OPTIONAL, sinceVersion, validateTempFilePolicy)
 
 	return err
 }
 
-func validateMediaPlayerInfoDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaPlayerInfoDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see table 291
 
 	dictName := "mediaPlayerInfoDict"
@@ -307,8 +307,7 @@ func validateMediaPlayerInfoDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVers
 	return err
 }
 
-func validateMediaPlayersDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaPlayersDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.7.2
 
 	dictName := "mediaPlayersDict"
@@ -322,31 +321,27 @@ func validateMediaPlayersDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion
 	// MU, optional, array of media player info dicts
 	a, err := validateArrayEntry(xRefTable, d, dictName, "MU", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.MU: %w", dictName, err)
 	}
 
-	if a != nil {
+	for i, v := range a {
 
-		for _, v := range a {
+		if v == nil {
+			continue
+		}
 
-			if v == nil {
-				continue
-			}
+		d, err := xRefTable.DereferenceDict(v)
+		if err != nil {
+			return fmt.Errorf("%s.MU[%d]: dereference media player info dict: %w", dictName, i, err)
+		}
 
-			d, err := xRefTable.DereferenceDict(v)
-			if err != nil {
-				return err
-			}
+		if d == nil {
+			continue
+		}
 
-			if d == nil {
-				continue
-			}
-
-			err = validateMediaPlayerInfoDict(xRefTable, d, sinceVersion)
-			if err != nil {
-				return err
-			}
-
+		err = validateMediaPlayerInfoDict(xRefTable, d, sinceVersion)
+		if err != nil {
+			return fmt.Errorf("%s.MU[%d]: %w", dictName, i, err)
 		}
 
 	}
@@ -355,18 +350,23 @@ func validateMediaPlayersDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion
 
 }
 
-func validateFileSpecOrFormXObjectEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName, entryName string, required bool, sinceVersion pdf.Version) error {
-
+func validateFileSpecOrFormXObjectEntry(xRefTable *model.XRefTable, d types.Dict, dictName, entryName string, required bool, sinceVersion model.Version) error {
+	rawEntry := d[entryName]
 	o, err := validateEntry(xRefTable, d, dictName, entryName, required, sinceVersion)
 	if err != nil || o == nil {
-		return err
+		if err != nil {
+			return fmt.Errorf("%s: %w", dictEntryContext(dictName, entryName, rawEntry), err)
+		}
+		return nil
 	}
 
-	return validateFileSpecificationOrFormObject(xRefTable, o)
+	if err := validateFileSpecificationOrFormObject(xRefTable, rawEntry); err != nil {
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, entryName, rawEntry), err)
+	}
+	return nil
 }
 
-func validateMediaClipDataDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaClipDataDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.4.2
 
 	dictName := "mediaClipDataDict"
@@ -398,12 +398,12 @@ func validateMediaClipDataDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersio
 	// PL, optional, media players dict
 	d1, err := validateDictEntry(xRefTable, d, dictName, "PL", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.PL: %w", dictName, err)
 	}
 	if d1 != nil {
 		err = validateMediaPlayersDict(xRefTable, d1, sinceVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s.PL: %w", dictName, err)
 		}
 	}
 
@@ -433,8 +433,7 @@ func validateMediaClipDataDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersio
 	return err
 }
 
-func validateTimespanDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateTimespanDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	dictName := "timespanDict"
 
 	// Type, optional, name
@@ -455,8 +454,7 @@ func validateTimespanDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf
 	return err
 }
 
-func validateMediaOffsetDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaOffsetDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.6.2
 
 	dictName := "mediaOffsetDict"
@@ -468,7 +466,7 @@ func validateMediaOffsetDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion 
 	}
 
 	// S, required, name
-	subType, err := validateNameEntry(xRefTable, d, dictName, "S", REQUIRED, sinceVersion, func(s string) bool { return pdf.MemberOf(s, []string{"T", "F", "M"}) })
+	subType, err := validateNameEntry(xRefTable, d, dictName, "S", REQUIRED, sinceVersion, func(s string) bool { return types.MemberOf(s, []string{"T", "F", "M"}) })
 	if err != nil {
 		return err
 	}
@@ -502,8 +500,7 @@ func validateMediaOffsetDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion 
 	return nil
 }
 
-func validateMediaClipSectionDictMHBE(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaClipSectionDictMHBE(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	dictName := "mediaClipSectionMHBE"
 
 	d1, err := validateDictEntry(xRefTable, d, dictName, "B", OPTIONAL, sinceVersion, nil)
@@ -528,20 +525,20 @@ func validateMediaClipSectionDictMHBE(xRefTable *pdf.XRefTable, d pdf.Dict, sinc
 	return err
 }
 
-func validateMediaClipSectionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaClipSectionDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.4.3
 
 	dictName := "mediaClipSectionDict"
 
 	// D, required, media clip dict
+	rawEntry := d["D"]
 	d1, err := validateDictEntry(xRefTable, d, dictName, "D", REQUIRED, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "D", rawEntry), err)
 	}
 	err = validateMediaClipDict(xRefTable, d1, sinceVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "D", rawEntry), err)
 	}
 
 	// Alt, optional, string array
@@ -574,8 +571,7 @@ func validateMediaClipSectionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVer
 	return err
 }
 
-func validateMediaClipDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaClipDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.4
 
 	dictName := "mediaClipDict"
@@ -601,19 +597,21 @@ func validateMediaClipDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pd
 	if *subType == "MCD" {
 		err = validateMediaClipDataDict(xRefTable, d, sinceVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s data: %w", dictName, err)
 		}
 	}
 
 	if *subType == "MCS" {
 		err = validateMediaClipSectionDict(xRefTable, d, sinceVersion)
+		if err != nil {
+			return fmt.Errorf("%s section: %w", dictName, err)
+		}
 	}
 
-	return err
+	return nil
 }
 
-func validateMediaDurationDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaDurationDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	dictName := "mediaDurationDict"
 
 	// Type, optional, name
@@ -623,7 +621,7 @@ func validateMediaDurationDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersio
 	}
 
 	// S, required, name
-	validate := func(s string) bool { return pdf.MemberOf(s, []string{"I", "F", "T"}) }
+	validate := func(s string) bool { return types.MemberOf(s, []string{"I", "F", "T"}) }
 	s, err := validateNameEntry(xRefTable, d, dictName, "S", REQUIRED, sinceVersion, validate)
 	if err != nil {
 		return err
@@ -641,8 +639,7 @@ func validateMediaDurationDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersio
 	return err
 }
 
-func validateMediaPlayParamsMHBEDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaPlayParamsMHBEDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	dictName := "mediaPlayParamsMHBEDict"
 
 	// V, optional, integer
@@ -687,8 +684,7 @@ func validateMediaPlayParamsMHBEDict(xRefTable *pdf.XRefTable, d pdf.Dict, since
 	return err
 }
 
-func validateMediaPlayParamsDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaPlayParamsDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.5
 
 	dictName := "mediaPlayParamsDict"
@@ -735,8 +731,7 @@ func validateMediaPlayParamsDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVers
 	return err
 }
 
-func validateFloatingWindowsParameterDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateFloatingWindowsParameterDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see table 284
 
 	dictName := "floatWinParamsDict"
@@ -748,25 +743,25 @@ func validateFloatingWindowsParameterDict(xRefTable *pdf.XRefTable, d pdf.Dict, 
 	}
 
 	// D, required, array of integers
-	_, err = validateIntegerArrayEntry(xRefTable, d, dictName, "D", REQUIRED, sinceVersion, func(a pdf.Array) bool { return len(a) == 2 })
+	_, err = validateIntegerArrayEntry(xRefTable, d, dictName, "D", REQUIRED, sinceVersion, func(a types.Array) bool { return len(a) == 2 })
 	if err != nil {
 		return err
 	}
 
 	// RT, optional, integer
-	_, err = validateIntegerEntry(xRefTable, d, dictName, "RT", OPTIONAL, sinceVersion, func(i int) bool { return pdf.IntMemberOf(i, []int{0, 1, 2, 3}) })
+	_, err = validateIntegerEntry(xRefTable, d, dictName, "RT", OPTIONAL, sinceVersion, func(i int) bool { return types.IntMemberOf(i, []int{0, 1, 2, 3}) })
 	if err != nil {
 		return err
 	}
 
 	// P, optional, integer
-	_, err = validateIntegerEntry(xRefTable, d, dictName, "P", OPTIONAL, sinceVersion, func(i int) bool { return pdf.IntMemberOf(i, []int{0, 1, 2, 3, 4, 5, 6, 7, 8}) })
+	_, err = validateIntegerEntry(xRefTable, d, dictName, "P", OPTIONAL, sinceVersion, func(i int) bool { return types.IntMemberOf(i, []int{0, 1, 2, 3, 4, 5, 6, 7, 8}) })
 	if err != nil {
 		return err
 	}
 
 	// O, optional, integer
-	_, err = validateIntegerEntry(xRefTable, d, dictName, "O", OPTIONAL, sinceVersion, func(i int) bool { return pdf.IntMemberOf(i, []int{0, 1, 2}) })
+	_, err = validateIntegerEntry(xRefTable, d, dictName, "O", OPTIONAL, sinceVersion, func(i int) bool { return types.IntMemberOf(i, []int{0, 1, 2}) })
 	if err != nil {
 		return err
 	}
@@ -784,7 +779,7 @@ func validateFloatingWindowsParameterDict(xRefTable *pdf.XRefTable, d pdf.Dict, 
 	}
 
 	// R, optional, integer
-	_, err = validateIntegerEntry(xRefTable, d, dictName, "R", OPTIONAL, sinceVersion, func(i int) bool { return pdf.IntMemberOf(i, []int{0, 1, 2}) })
+	_, err = validateIntegerEntry(xRefTable, d, dictName, "R", OPTIONAL, sinceVersion, func(i int) bool { return types.IntMemberOf(i, []int{0, 1, 2}) })
 	if err != nil {
 		return err
 	}
@@ -795,14 +790,13 @@ func validateFloatingWindowsParameterDict(xRefTable *pdf.XRefTable, d pdf.Dict, 
 	return err
 }
 
-func validateScreenParametersMHBEDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateScreenParametersMHBEDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	dictName := "screenParmsMHBEDict"
 
 	w := 3
 
 	// W, optional, integer
-	i, err := validateIntegerEntry(xRefTable, d, dictName, "W", OPTIONAL, sinceVersion, func(i int) bool { return pdf.IntMemberOf(i, []int{0, 1, 2, 3}) })
+	i, err := validateIntegerEntry(xRefTable, d, dictName, "W", OPTIONAL, sinceVersion, func(i int) bool { return types.IntMemberOf(i, []int{0, 1, 2, 3}) })
 	if err != nil {
 		return err
 	}
@@ -811,7 +805,7 @@ func validateScreenParametersMHBEDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinc
 	}
 
 	// B, optional, array of 3 numbers
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "B", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "B", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
@@ -840,8 +834,7 @@ func validateScreenParametersMHBEDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinc
 	return err
 }
 
-func validateScreenParametersDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateScreenParametersDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// see 13.2.
 
 	dictName := "screenParmsDict"
@@ -876,60 +869,64 @@ func validateScreenParametersDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVer
 	return err
 }
 
-func validateMediaRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateMediaRenditionDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// table 271
 
 	dictName := "mediaRendDict"
 
 	// C, optional, dict
+	rawEntry := d["C"]
 	d1, err := validateDictEntry(xRefTable, d, dictName, "C", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "C", rawEntry), err)
 	}
 	if d1 != nil {
 		err = validateMediaClipDict(xRefTable, d1, sinceVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", dictEntryContext(dictName, "C", rawEntry), err)
 		}
 	}
 
 	// P, required if C not present, dict
+	rawEntry = d["P"]
 	d1, err = validateDictEntry(xRefTable, d, dictName, "P", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "P", rawEntry), err)
 	}
 	if d1 != nil {
 		err = validateMediaPlayParamsDict(xRefTable, d1, sinceVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", dictEntryContext(dictName, "P", rawEntry), err)
 		}
 	}
 
 	// SP, optional, dict
+	rawEntry = d["SP"]
 	d1, err = validateDictEntry(xRefTable, d, dictName, "SP", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictEntryContext(dictName, "SP", rawEntry), err)
 	}
 	if d1 != nil {
 		err = validateScreenParametersDict(xRefTable, d1, sinceVersion)
+		if err != nil {
+			return fmt.Errorf("%s: %w", dictEntryContext(dictName, "SP", rawEntry), err)
+		}
 	}
 
-	return err
+	return nil
 }
 
-func validateSelectorRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) error {
-
+func validateSelectorRenditionDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) error {
 	// table 272
 
 	dictName := "selectorRendDict"
 
 	a, err := validateArrayEntry(xRefTable, d, dictName, "R", REQUIRED, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.R: %w", dictName, err)
 	}
 
-	for _, v := range a {
+	for i, v := range a {
 
 		if v == nil {
 			continue
@@ -937,7 +934,7 @@ func validateSelectorRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVe
 
 		d, err := xRefTable.DereferenceDict(v)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: dereference rendition dict: %w", objectContext(fmt.Sprintf("%s.R[%d]", dictName, i), v), err)
 		}
 
 		if d == nil {
@@ -946,7 +943,7 @@ func validateSelectorRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVe
 
 		err = validateRenditionDict(xRefTable, d, sinceVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", objectContext(fmt.Sprintf("%s.R[%d]", dictName, i), v), err)
 		}
 
 	}
@@ -954,22 +951,23 @@ func validateSelectorRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVe
 	return nil
 }
 
-func validateRenditionDictEntryMH(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, sinceVersion pdf.Version) error {
-
+func validateRenditionDictEntryMH(xRefTable *model.XRefTable, d types.Dict, dictName string, sinceVersion model.Version) error {
 	d1, err := validateDictEntry(xRefTable, d, dictName, "MH", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.MH: %w", dictName, err)
 	}
 
 	if d1 != nil {
 
 		d2, err := validateDictEntry(xRefTable, d1, "MHDict", "C", OPTIONAL, sinceVersion, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s.MH.C: %w", dictName, err)
 		}
 
 		if d2 != nil {
-			return validateMediaCriteriaDict(xRefTable, d2, sinceVersion)
+			if err := validateMediaCriteriaDict(xRefTable, d2, sinceVersion); err != nil {
+				return fmt.Errorf("%s.MH.C: %w", dictName, err)
+			}
 		}
 
 	}
@@ -977,47 +975,49 @@ func validateRenditionDictEntryMH(xRefTable *pdf.XRefTable, d pdf.Dict, dictName
 	return nil
 }
 
-func validateRenditionDictEntryBE(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, sinceVersion pdf.Version) (err error) {
-
+func validateRenditionDictEntryBE(xRefTable *model.XRefTable, d types.Dict, dictName string, sinceVersion model.Version) (err error) {
 	d1, err := validateDictEntry(xRefTable, d, dictName, "BE", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.BE: %w", dictName, err)
 	}
 
 	if d1 != nil {
 
 		d2, err := validateDictEntry(xRefTable, d1, "BEDict", "C", OPTIONAL, sinceVersion, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s.BE.C: %w", dictName, err)
 		}
 
-		return validateMediaCriteriaDict(xRefTable, d2, sinceVersion)
+		if d2 != nil {
+			if err := validateMediaCriteriaDict(xRefTable, d2, sinceVersion); err != nil {
+				return fmt.Errorf("%s.BE.C: %w", dictName, err)
+			}
+		}
 
 	}
 
 	return nil
 }
 
-func validateRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pdf.Version) (err error) {
-
+func validateRenditionDict(xRefTable *model.XRefTable, d types.Dict, sinceVersion model.Version) (err error) {
 	dictName := "renditionDict"
 
 	// Type, optional, name
 	_, err = validateNameEntry(xRefTable, d, dictName, "Type", OPTIONAL, sinceVersion, func(s string) bool { return s == "Rendition" })
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Type: %w", dictName, err)
 	}
 
 	// S, required, name
 	renditionType, err := validateNameEntry(xRefTable, d, dictName, "S", REQUIRED, sinceVersion, func(s string) bool { return s == "MR" || s == "SR" })
 	if err != nil {
-		return
+		return fmt.Errorf("%s.S: %w", dictName, err)
 	}
 
 	// N, optional, text string
 	_, err = validateStringEntry(xRefTable, d, dictName, "N", OPTIONAL, sinceVersion, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.N: %w", dictName, err)
 	}
 
 	// MH, optional, dict
@@ -1035,13 +1035,16 @@ func validateRenditionDict(xRefTable *pdf.XRefTable, d pdf.Dict, sinceVersion pd
 	if *renditionType == "MR" {
 		err = validateMediaRenditionDict(xRefTable, d, sinceVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s media rendition: %w", dictName, err)
 		}
 	}
 
 	if *renditionType == "SR" {
 		err = validateSelectorRenditionDict(xRefTable, d, sinceVersion)
+		if err != nil {
+			return fmt.Errorf("%s selector rendition: %w", dictName, err)
+		}
 	}
 
-	return err
+	return nil
 }

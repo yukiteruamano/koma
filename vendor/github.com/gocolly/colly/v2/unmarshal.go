@@ -35,17 +35,17 @@ func (h *HTMLElement) UnmarshalWithMap(v interface{}, structMap map[string]strin
 // UnmarshalHTML declaratively extracts text or attributes to a struct from
 // HTML response using struct tags composed of css selectors.
 // Allowed struct tags:
-//  - "selector" (required): CSS (goquery) selector of the desired data
-//  - "attr" (optional): Selects the matching element's attribute's value.
+//   - "selector" (required): CSS (goquery) selector of the desired data
+//   - "attr" (optional): Selects the matching element's attribute's value.
 //     Leave it blank or omit to get the text of the element.
 //
 // Example struct declaration:
 //
-//   type Nested struct {
-//   	String  string   `selector:"div > p"`
-//      Classes []string `selector:"li" attr:"class"`
-//   	Struct  *Nested  `selector:"div > div"`
-//   }
+//	type Nested struct {
+//		String  string   `selector:"div > p"`
+//	   Classes []string `selector:"li" attr:"class"`
+//		Struct  *Nested  `selector:"div > div"`
+//	}
 //
 // Supported types: struct, *struct, string, []string
 func UnmarshalHTML(v interface{}, s *goquery.Selection, structMap map[string]string) error {
@@ -96,7 +96,12 @@ func unmarshalSelector(s *goquery.Selection, attrV reflect.Value, selector strin
 			return err
 		}
 	case reflect.String:
-		val := getDOMValue(s.Find(selector), htmlAttr)
+		var val string
+		if selector == "" && htmlAttr != "" {
+			val = getDOMValue(s, htmlAttr)
+		} else {
+			val = getDOMValue(s.Find(selector), htmlAttr)
+		}
 		attrV.Set(reflect.Indirect(reflect.ValueOf(val)))
 	case reflect.Struct:
 		if err := unmarshalStruct(s, selector, attrV); err != nil {

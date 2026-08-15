@@ -1,11 +1,15 @@
 package tui
 
 import (
+	"cmp"
 	"fmt"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/history"
@@ -17,10 +21,7 @@ import (
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/samber/lo"
-	"github.com/samber/mo"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
+	"slices"
 	"time"
 )
 
@@ -641,15 +642,25 @@ func (b *statefulBubble) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return b, tea.Quit
 		case key.Matches(msg, b.keymap.confirm):
 			chapters := lo.Keys(b.selectedChapters)
-			slices.SortFunc(chapters, func(a, b *source.Chapter) bool {
-				return a.Index > b.Index
+			slices.SortFunc(chapters, func(a, b *source.Chapter) int {
+				return cmp.Compare(b.Index, a.Index)
 			})
 
 			for _, chapter := range chapters {
 				b.chaptersToDownload.Push(chapter)
 			}
 			b.newState(downloadState)
-			return b, tea.Batch(b.startLoading(), b.downloadChapter(b.chaptersToDownload.Pop()), b.waitForChapterDownload(), b.progressC.SetPercent(0))
+
+			chapter := b.chaptersToDownload.Pop()
+			b.currentDownloadingChapter = chapter
+
+			return b, tea.Batch(
+				b.startLoading(),
+				b.downloadChapter(chapter),
+				b.waitForChapterDownload(),
+				b.waitForProgress(),
+				b.progressC.SetPercent(0),
+			)
 		case key.Matches(msg, b.keymap.back):
 			b.previousState()
 		}
@@ -675,20 +686,46 @@ func (b *statefulBubble) updateDownload(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case struct{}:
+	case progressMsg:
+		b.progressStatus = msg.status
+		return b, b.waitForProgress()
+	case chapterDownloadResult:
+		if msg.err != nil {
+			if viper.GetBool(key2.DownloaderStopOnError) {
+				b.raiseError(msg.err)
+				return b, b.stopLoading()
+			}
+
+			b.failedChapters = append(b.failedChapters, msg.chapter)
+		} else {
+			b.succededChapters = append(b.succededChapters, msg.chapter)
+		}
+
 		inc := 1 / float64(len(b.selectedChapters))
 
 		if b.chaptersToDownload.Len() == 0 {
-			// a little hack to make the progress render to the end
-			go func() {
-				time.Sleep(time.Millisecond * 400)
-				b.newState(downloadDoneState)
-			}()
-
-			return b, b.progressC.IncrPercent(inc)
+			// let the progress bar render to the end before switching states
+			return b, tea.Batch(
+				b.progressC.IncrPercent(inc),
+				tea.Tick(time.Millisecond*400, func(time.Time) tea.Msg { return downloadDoneMsg{} }),
+			)
 		}
 
-		return b, tea.Batch(b.progressC.IncrPercent(inc), b.downloadChapter(b.chaptersToDownload.Pop()), b.waitForChapterDownload())
+		chapter := b.chaptersToDownload.Pop()
+		b.currentDownloadingChapter = chapter
+
+		return b, tea.Batch(
+			b.progressC.IncrPercent(inc),
+			b.downloadChapter(chapter),
+			b.waitForChapterDownload(),
+			b.waitForProgress(),
+		)
+	case downloadError:
+		b.raiseError(msg.err)
+		return b, b.stopLoading()
+	case downloadDoneMsg:
+		b.newState(downloadDoneState)
+		return b, b.stopLoading()
 	case progress.FrameMsg:
 		model, cmd := b.progressC.Update(msg)
 		b.progressC = model.(progress.Model)
@@ -730,7 +767,17 @@ func (b *statefulBubble) updateDownloadDone(msg tea.Msg) (tea.Model, tea.Cmd) {
 			b.failedChapters = make([]*source.Chapter, 0)
 			b.succededChapters = make([]*source.Chapter, 0)
 			b.newState(downloadState)
-			return b, tea.Batch(b.startLoading(), b.downloadChapter(b.chaptersToDownload.Pop()), b.waitForChapterDownload(), b.progressC.SetPercent(0))
+
+			chapter := b.chaptersToDownload.Pop()
+			b.currentDownloadingChapter = chapter
+
+			return b, tea.Batch(
+				b.startLoading(),
+				b.downloadChapter(chapter),
+				b.waitForChapterDownload(),
+				b.waitForProgress(),
+				b.progressC.SetPercent(0),
+			)
 		}
 	}
 

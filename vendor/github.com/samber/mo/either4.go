@@ -1,6 +1,11 @@
 package mo
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/gob"
+	"errors"
+	"fmt"
+)
 
 const (
 	either4ArgId1 = iota
@@ -10,11 +15,11 @@ const (
 )
 
 var (
-	either4InvalidArgumentId = fmt.Errorf("either4 argument should be between 1 and 4")
-	either4MissingArg1       = fmt.Errorf("either4 doesn't contain expected argument 1")
-	either4MissingArg2       = fmt.Errorf("either4 doesn't contain expected argument 2")
-	either4MissingArg3       = fmt.Errorf("either4 doesn't contain expected argument 3")
-	either4MissingArg4       = fmt.Errorf("either4 doesn't contain expected argument 4")
+	errEither4InvalidArgumentId = fmt.Errorf("either4 argument should be between 1 and 4")
+	errEither4MissingArg1       = fmt.Errorf("either4 doesn't contain expected argument 1")
+	errEither4MissingArg2       = fmt.Errorf("either4 doesn't contain expected argument 2")
+	errEither4MissingArg3       = fmt.Errorf("either4 doesn't contain expected argument 3")
+	errEither4MissingArg4       = fmt.Errorf("either4 doesn't contain expected argument 4")
 )
 
 // NewEither4Arg1 builds the first argument of the Either4 struct.
@@ -115,7 +120,7 @@ func (e Either4[T1, T2, T3, T4]) Arg4() (T4, bool) {
 // MustArg1 returns the first argument of a Either4 struct or panics.
 func (e Either4[T1, T2, T3, T4]) MustArg1() T1 {
 	if !e.IsArg1() {
-		panic(either4MissingArg1)
+		panic(errEither4MissingArg1)
 	}
 	return e.arg1
 }
@@ -123,7 +128,7 @@ func (e Either4[T1, T2, T3, T4]) MustArg1() T1 {
 // MustArg2 returns the second argument of a Either4 struct or panics.
 func (e Either4[T1, T2, T3, T4]) MustArg2() T2 {
 	if !e.IsArg2() {
-		panic(either4MissingArg2)
+		panic(errEither4MissingArg2)
 	}
 	return e.arg2
 }
@@ -131,7 +136,7 @@ func (e Either4[T1, T2, T3, T4]) MustArg2() T2 {
 // MustArg3 returns the third argument of a Either4 struct or panics.
 func (e Either4[T1, T2, T3, T4]) MustArg3() T3 {
 	if !e.IsArg3() {
-		panic(either4MissingArg3)
+		panic(errEither4MissingArg3)
 	}
 	return e.arg3
 }
@@ -139,7 +144,7 @@ func (e Either4[T1, T2, T3, T4]) MustArg3() T3 {
 // MustArg4 returns the fourth argument of a Either4 struct or panics.
 func (e Either4[T1, T2, T3, T4]) MustArg4() T4 {
 	if !e.IsArg4() {
-		panic(either4MissingArg4)
+		panic(errEither4MissingArg4)
 	}
 	return e.arg4
 }
@@ -245,7 +250,7 @@ func (e Either4[T1, T2, T3, T4]) Match(
 		return onArg4(e.arg4)
 	}
 
-	panic(either4InvalidArgumentId)
+	panic(errEither4InvalidArgumentId)
 }
 
 // MapArg1 executes the given function, if Either4 use the first argument, and returns result.
@@ -282,4 +287,90 @@ func (e Either4[T1, T2, T3, T4]) MapArg4(mapper func(T4) Either4[T1, T2, T3, T4]
 	}
 
 	return e
+}
+
+// MarshalBinary encodes Either4 into binary form.
+func (e Either4[T1, T2, T3, T4]) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	switch e.argId {
+	case either4ArgId1:
+		if err := enc.Encode(e.arg1); err != nil {
+			return []byte{}, err
+		}
+	case either4ArgId2:
+		if err := enc.Encode(e.arg2); err != nil {
+			return []byte{}, err
+		}
+	case either4ArgId3:
+		if err := enc.Encode(e.arg3); err != nil {
+			return []byte{}, err
+		}
+	case either4ArgId4:
+		if err := enc.Encode(e.arg4); err != nil {
+			return []byte{}, err
+		}
+	default:
+		return []byte{}, errEither4InvalidArgumentId
+	}
+	return append([]byte{byte(e.argId)}, buf.Bytes()...), nil
+}
+
+// UnmarshalBinary decodes Either4 from binary form.
+func (e *Either4[T1, T2, T3, T4]) UnmarshalBinary(data []byte) error {
+	if len(data) == 0 {
+		return errors.New("Either4[T1, T2, T3, T4].UnmarshalBinary: no data")
+	}
+
+	buf := bytes.NewBuffer(data[1:])
+	dec := gob.NewDecoder(buf)
+
+	switch int8(data[0]) {
+	case either4ArgId1:
+		if err := dec.Decode(&e.arg1); err != nil {
+			return err
+		}
+		e.argId = either4ArgId1
+		e.arg2 = empty[T2]()
+		e.arg3 = empty[T3]()
+		e.arg4 = empty[T4]()
+	case either4ArgId2:
+		if err := dec.Decode(&e.arg2); err != nil {
+			return err
+		}
+		e.argId = either4ArgId2
+		e.arg1 = empty[T1]()
+		e.arg3 = empty[T3]()
+		e.arg4 = empty[T4]()
+	case either4ArgId3:
+		if err := dec.Decode(&e.arg3); err != nil {
+			return err
+		}
+		e.argId = either4ArgId3
+		e.arg1 = empty[T1]()
+		e.arg2 = empty[T2]()
+		e.arg4 = empty[T4]()
+	case either4ArgId4:
+		if err := dec.Decode(&e.arg4); err != nil {
+			return err
+		}
+		e.argId = either4ArgId4
+		e.arg1 = empty[T1]()
+		e.arg2 = empty[T2]()
+		e.arg3 = empty[T3]()
+	default:
+		return errEither4InvalidArgumentId
+	}
+	return nil
+}
+
+// GobEncode implements the gob.GobEncoder interface.
+func (e Either4[T1, T2, T3, T4]) GobEncode() ([]byte, error) {
+	return e.MarshalBinary()
+}
+
+// GobDecode implements the gob.GobDecoder interface.
+func (e *Either4[T1, T2, T3, T4]) GobDecode(data []byte) error {
+	return e.UnmarshalBinary(data)
 }

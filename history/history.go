@@ -1,14 +1,16 @@
 package history
 
 import (
+	"sync"
+
 	"github.com/metafates/gache"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/integration"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/spf13/viper"
 )
 
 var cacher = gache.New[map[string]*SavedChapter](
@@ -18,8 +20,20 @@ var cacher = gache.New[map[string]*SavedChapter](
 	},
 )
 
+// mu serializes history reads and the Get-mutate-Set cycle so concurrent
+// saves cannot lose updates or corrupt the history file.
+var mu sync.RWMutex
+
 // Get returns all chapters from the history file
 func Get() (chapters map[string]*SavedChapter, err error) {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	return read()
+}
+
+// read returns the in-memory history map. Caller must hold the lock.
+func read() (map[string]*SavedChapter, error) {
 	cached, expired, err := cacher.Get()
 
 	if err != nil {
@@ -45,7 +59,10 @@ func Save(chapter *source.Chapter) error {
 		}()
 	}
 
-	saved, err := Get()
+	mu.Lock()
+	defer mu.Unlock()
+
+	saved, err := read()
 	if err != nil {
 		return err
 	}
@@ -58,7 +75,10 @@ func Save(chapter *source.Chapter) error {
 
 // Remove removes the chapter from the history file
 func Remove(chapter *SavedChapter) error {
-	saved, err := Get()
+	mu.Lock()
+	defer mu.Unlock()
+
+	saved, err := read()
 	if err != nil {
 		return err
 	}

@@ -2,15 +2,17 @@ package source
 
 import (
 	"fmt"
-	"github.com/yukiteruamano/koma/anilist"
-	"github.com/yukiteruamano/koma/filesystem"
-	"github.com/yukiteruamano/koma/key"
-	"github.com/yukiteruamano/koma/log"
-	"github.com/yukiteruamano/koma/util"
-	"github.com/yukiteruamano/koma/where"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/spf13/viper"
+	"github.com/yukiteruamano/koma/anilist"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/network"
+	"github.com/yukiteruamano/koma/util"
+	"github.com/yukiteruamano/koma/where"
 	"io"
 	"net/http"
 	"os"
@@ -182,7 +184,15 @@ func (m *Manga) DownloadCover(overwrite bool, path string, progress func(string)
 		}
 	}
 
-	resp, err := http.Get(cover)
+	req, err := http.NewRequest(http.MethodGet, cover, nil)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	req.Header.Set("User-Agent", constant.UserAgent)
+
+	resp, err := network.Do(req)
 	if err != nil {
 		log.Error(err)
 		return err

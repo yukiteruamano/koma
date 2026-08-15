@@ -6,16 +6,17 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/pdfcpu/pdfcpu/pkg/api"
-	"github.com/pdfcpu/pdfcpu/pkg/log"
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
-	"github.com/spf13/viper"
-	"io"
 
 	_ "golang.org/x/image/webp"
 )
@@ -51,18 +52,14 @@ func save(chapter *source.Chapter, temp bool) (path string, err error) {
 	return
 }
 
-// pagesToPDF will convert images to PDF and write to w
+// pagesToPDF will convert images to PDF and write to w.
+// The PDF context is built once and every image is appended to the same page
+// tree, so the document is serialized a single time (O(n) instead of O(n^2)).
 func pagesToPDF(w io.Writer, pages []*source.Page) error {
-	conf := pdfcpu.NewDefaultConfiguration()
-	conf.Cmd = pdfcpu.IMPORTIMAGES
+	conf := model.NewDefaultConfiguration()
 	imp := pdfcpu.DefaultImportConfig()
 
-	var (
-		ctx *pdfcpu.Context
-		err error
-	)
-
-	ctx, err = pdfcpu.CreateContextWithXRefTable(conf, imp.PageDim)
+	ctx, err := pdfcpu.CreateContextWithXRefTable(conf, imp.PageDim)
 	if err != nil {
 		return err
 	}
@@ -72,7 +69,6 @@ func pagesToPDF(w io.Writer, pages []*source.Page) error {
 		return err
 	}
 
-	// This is the page tree root.
 	pagesDict, err := ctx.DereferenceDict(*pagesIndRef)
 	if err != nil {
 		return err
@@ -80,21 +76,18 @@ func pagesToPDF(w io.Writer, pages []*source.Page) error {
 
 	for _, r := range pages {
 		// Read the page contents so we can decode image dimensions
-		// and then create a fresh reader for the PDF import.
+		// and then set the page size to match the image,
+		// preventing tall webtoon/manhwa pages from being clipped to A4.
 		data := r.Contents.Bytes()
 
-		// Decode image dimensions to set the page size to match the image,
-		// preventing tall webtoon/manhwa pages from being clipped to A4.
-		imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
-		if err == nil {
-			imp.PageDim = &pdfcpu.Dim{
+		if imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil {
+			imp.PageDim = &types.Dim{
 				Width:  float64(imgCfg.Width),
 				Height: float64(imgCfg.Height),
 			}
 		}
 
-		indRef, err := pdfcpu.NewPageForImage(ctx.XRefTable, bytes.NewReader(data), pagesIndRef, imp)
-
+		indRefs, err := pdfcpu.NewPagesForImage(ctx.XRefTable, bytes.NewReader(data), pagesIndRef, imp)
 		if err != nil {
 			if viper.GetBool(key.FormatsSkipUnsupportedImages) {
 				continue
@@ -103,18 +96,16 @@ func pagesToPDF(w io.Writer, pages []*source.Page) error {
 			return err
 		}
 
-		if err = pdfcpu.AppendPageTree(indRef, 1, pagesDict); err != nil {
-			return err
+		for _, indRef := range indRefs {
+			if err := ctx.SetValid(*indRef); err != nil {
+				return err
+			}
+			if err := model.AppendPageTree(indRef, 1, pagesDict); err != nil {
+				return err
+			}
+			ctx.PageCount++
 		}
-
-		ctx.PageCount++
 	}
 
-	if err = api.WriteContext(ctx, w); err != nil {
-		return err
-	}
-
-	log.Stats.Printf("XRefTable:\n%s\n", ctx)
-
-	return nil
+	return api.Write(ctx, w, conf)
 }

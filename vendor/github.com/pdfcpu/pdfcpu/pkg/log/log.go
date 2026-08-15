@@ -18,6 +18,8 @@ limitations under the License.
 package log
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -40,6 +42,10 @@ type Logger interface {
 
 type logger struct {
 	log Logger
+}
+
+type writerLogger interface {
+	Writer() io.Writer
 }
 
 // pdfcpu's loggers.
@@ -157,7 +163,7 @@ func SetDefaultWriteLogger() {
 
 // SetDefaultCLILogger sets the default cli logger.
 func SetDefaultCLILogger() {
-	SetCLILogger(log.New(os.Stdout, "", 0))
+	SetCLILogger(log.New(os.Stderr, "", 0))
 }
 
 // SetDefaultLoggers sets all loggers to their default logger.
@@ -188,14 +194,54 @@ func DisableLoggers() {
 	SetCLILogger(nil)
 }
 
-// IsTraceLoggerEnabled returns true if the Trace Logger is enabled.
-func IsTraceLoggerEnabled() bool {
+// CLIEnabled returns true if the CLI Logger is enabled.
+func CLIEnabled() bool {
+	return CLI.log != nil
+}
+
+// DebugEnabled returns true if the Debug Logger is enabled.
+func DebugEnabled() bool {
+	return Debug.log != nil
+}
+
+// InfoEnabled returns true if the Info Logger is enabled.
+func InfoEnabled() bool {
+	return Info.log != nil
+}
+
+// OptimizeEnabled returns true if the Optimize Logger is enabled.
+func OptimizeEnabled() bool {
+	return Optimize.log != nil
+}
+
+// ParseEnabled returns true if the Parse Logger is enabled.
+func ParseEnabled() bool {
+	return Parse.log != nil
+}
+
+// ReadEnabled returns true if the Read Logger is enabled.
+func ReadEnabled() bool {
+	return Read.log != nil
+}
+
+// StatsEnabled returns true if the Read Logger is enabled.
+func StatsEnabled() bool {
+	return Stats.log != nil
+}
+
+// TraceEnabled returns true if the Trace Logger is enabled.
+func TraceEnabled() bool {
 	return Trace.log != nil
 }
 
-// IsCLILoggerEnabled returns true if the CLI Logger is enabled.
-func IsCLILoggerEnabled() bool {
-	return CLI.log != nil
+// ValidateEnabled returns true if the Validate Logger is enabled.
+func ValidateEnabled() bool {
+	return Validate.log != nil
+}
+
+// WriteEnabled returns true if the Write Logger is enabled.
+func WriteEnabled() bool {
+	return Write.log != nil
 }
 
 // Printf writes a formatted message to the log.
@@ -218,6 +264,21 @@ func (l *logger) Println(args ...interface{}) {
 	l.log.Println(args...)
 }
 
+// Print writes a message to the log without appending a newline.
+func (l *logger) Print(args ...interface{}) {
+
+	if l.log == nil {
+		return
+	}
+
+	if wl, ok := l.log.(writerLogger); ok {
+		fmt.Fprint(wl.Writer(), args...)
+		return
+	}
+
+	l.log.Printf("%s", fmt.Sprint(args...))
+}
+
 // Fatalf is equivalent to Printf() followed by a program abort.
 func (l *logger) Fatalf(format string, args ...interface{}) {
 
@@ -228,7 +289,7 @@ func (l *logger) Fatalf(format string, args ...interface{}) {
 	l.log.Fatalf(format, args...)
 }
 
-// Fatalf is equivalent to Println() followed by a program abort.
+// Fatalln is equivalent to Println() followed by a program abort.
 func (l *logger) Fatalln(args ...interface{}) {
 
 	if l.log == nil {

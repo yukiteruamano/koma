@@ -1,43 +1,42 @@
 package mangadex
 
 import (
-	"bytes"
+	"context"
 	"errors"
-	"github.com/yukiteruamano/koma/source"
+	"fmt"
+	"net/http"
+	"net/url"
 	"path/filepath"
+	"strings"
+
+	"github.com/darylhjd/mangodex"
+	"github.com/yukiteruamano/koma/source"
 )
 
 func (m *Mangadex) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
-	downloader, err := m.client.AtHome.NewMDHomeClient(chapter.ID, "data", false)
-	if err != nil {
+	u, _ := url.Parse(mangodex.BaseAPI)
+	u.Path = fmt.Sprintf(mangodex.GetMDHomeURLPath, chapter.ID)
+
+	var server mangodex.MDHomeServerResponse
+	if err := m.client.RequestAndDecode(context.Background(), http.MethodGet, u.String(), nil, &server); err != nil {
 		return nil, err
 	}
 
-	if len(downloader.Pages) == 0 {
+	names := server.Chapter.Data
+	if len(names) == 0 {
 		return nil, errors.New("there were no pages for this chapter")
 	}
 
-	var pages = make([]*source.Page, len(downloader.Pages))
-
-	for i, name := range downloader.Pages {
-		image, err := downloader.GetChapterPage(name)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(image) == 0 {
-			return nil, errors.New("image is empty")
-		}
-
-		page := source.Page{
+	// Build page URLs only. Contents are fetched lazily by the downloader,
+	// so pages download concurrently through the generic async machinery.
+	var pages = make([]*source.Page, len(names))
+	for i, name := range names {
+		pages[i] = &source.Page{
 			Index:     uint16(i),
+			URL:       strings.Join([]string{server.BaseURL, "data", server.Chapter.Hash, name}, "/"),
 			Chapter:   chapter,
 			Extension: filepath.Ext(name),
-			Contents:  bytes.NewBuffer(image),
-			Size:      uint64(len(image)),
 		}
-
-		pages[i] = &page
 	}
 
 	chapter.Pages = pages

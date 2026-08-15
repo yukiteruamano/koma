@@ -3,7 +3,7 @@ package key
 // DefinedFieldsCount is the number of fields defined in this package.
 // You have to manually update this number when you add a new field
 // to check later if every field has a defined default value
-const DefinedFieldsCount = 55
+const DefinedFieldsCount = 60
 
 const (
 	DownloaderPath                = "downloader.path"
@@ -17,6 +17,14 @@ const (
 	DownloaderRedownloadExisting  = "downloader.redownload_existing"
 	DownloaderReadDownloaded      = "downloader.read_downloaded"
 	DownloaderEscapeWhitespace    = "downloader.escape_whitespace"
+	DownloaderConcurrency         = "downloader.concurrency"
+)
+
+const (
+	NetworkTimeout         = "network.timeout"
+	NetworkMaxConnsPerHost = "network.max_conns_per_host"
+	NetworkMaxRetries      = "network.max_retries"
+	NetworkRetryBaseDelay  = "network.retry_base_delay"
 )
 
 const (

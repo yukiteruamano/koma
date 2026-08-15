@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/util"
@@ -57,7 +58,7 @@ func (p *Page) Download() error {
 		return err
 	}
 
-	resp, err := network.Client.Do(req)
+	resp, err := network.Do(req)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -100,6 +101,47 @@ func (p *Page) Download() error {
 	p.Size = uint64(util.Max(contentLength, 0))
 
 	log.Tracef("Page #%d downloaded", p.Index)
+	return nil
+}
+
+// DownloadTo streams the page contents straight to the given path on disk,
+// keeping only one copy of the page in memory at a time. Contents is left nil.
+func (p *Page) DownloadTo(path string) error {
+	if p.URL == "" {
+		return fmt.Errorf("page #%d has no URL, can't download", p.Index)
+	}
+
+	req, err := p.request()
+	if err != nil {
+		return err
+	}
+
+	resp, err := network.Do(req)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	defer util.Ignore(resp.Body.Close)
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http error: " + resp.Status)
+	}
+
+	file, err := filesystem.Api().Create(path)
+	if err != nil {
+		return err
+	}
+
+	size, err := io.Copy(file, resp.Body)
+	if closeErr := file.Close(); err == nil && closeErr != nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+
+	p.Size = uint64(size)
 	return nil
 }
 

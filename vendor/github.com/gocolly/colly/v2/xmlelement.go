@@ -15,7 +15,6 @@
 package colly
 
 import (
-	"encoding/xml"
 	"strings"
 
 	"github.com/antchfx/htmlquery"
@@ -38,6 +37,8 @@ type XMLElement struct {
 	// based on how the XMLElement was created.
 	DOM    interface{}
 	isHTML bool
+	// Index stores the position of the current element within all the elements matched by an OnXML callback
+	Index int
 }
 
 // NewXMLElementFromHTMLNode creates a XMLElement from a html.Node.
@@ -76,7 +77,7 @@ func (h *XMLElement) Attr(k string) string {
 			}
 		}
 	} else {
-		for _, a := range h.attributes.([]xml.Attr) {
+		for _, a := range h.attributes.([]xmlquery.Attr) {
 			if a.Name.Local == k {
 				return a.Value
 			}

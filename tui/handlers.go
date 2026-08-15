@@ -8,14 +8,12 @@ import (
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/downloader"
 	"github.com/yukiteruamano/koma/installer"
-	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/provider"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -31,8 +29,8 @@ func (b *statefulBubble) loadScrapers() tea.Cmd {
 		}
 		b.progressStatus = "Scrapers Loaded"
 
-		slices.SortFunc(scrapers, func(a, b *installer.Scraper) bool {
-			return strings.Compare(a.Name, b.Name) < 0
+		slices.SortFunc(scrapers, func(a, b *installer.Scraper) int {
+			return strings.Compare(a.Name, b.Name)
 		})
 
 		var items = make([]list.Item, len(scrapers))
@@ -144,30 +142,36 @@ func (b *statefulBubble) waitForSourcesLoaded() tea.Cmd {
 func (b *statefulBubble) searchManga(query string) tea.Cmd {
 	return func() tea.Msg {
 		log.Info("searching for " + query)
-		b.progressStatus = fmt.Sprintf("Searching among %s", util.Quantify(len(b.selectedSources), "source", "sources"))
 
-		var mangas = make([]*source.Manga, 0)
+		sources := b.selectedSources
+		results := make([][]*source.Manga, len(sources))
 
 		wg := sync.WaitGroup{}
-		wg.Add(len(b.selectedSources))
-		for _, s := range b.selectedSources {
-			go func(s source.Source) {
+		wg.Add(len(sources))
+		for i, s := range sources {
+			go func(i int, s source.Source) {
 				defer wg.Done()
 				sourceMangas, err := s.Search(query)
 
 				if err != nil {
 					log.Error(err)
 					b.errorChannel <- err
+					return
 				}
 
 				log.Infof("found %s from source %s", util.Quantify(len(sourceMangas), "manga", "mangas"), s.Name())
-				mangas = append(mangas, sourceMangas...)
-			}(s)
+				results[i] = sourceMangas
+			}(i, s)
 		}
 
 		wg.Wait()
 
-		log.Infof("found %d mangas from %d sources", len(mangas), len(b.selectedSources))
+		var mangas []*source.Manga
+		for _, result := range results {
+			mangas = append(mangas, result...)
+		}
+
+		log.Infof("found %d mangas from %d sources", len(mangas), len(sources))
 
 		b.foundMangasChannel <- mangas
 
@@ -246,24 +250,15 @@ func (b *statefulBubble) waitForChapterRead() tea.Cmd {
 
 func (b *statefulBubble) downloadChapter(chapter *source.Chapter) tea.Cmd {
 	return func() tea.Msg {
-		b.currentDownloadingChapter = chapter
 		_, err := downloader.Download(chapter, func(s string) {
-			b.progressStatus = s
+			select {
+			case b.progressChannel <- progressMsg{status: s}:
+			default:
+				// drop if the UI is not draining progress fast enough
+			}
 		})
 
-		if err != nil {
-			if viper.GetBool(key.DownloaderStopOnError) {
-				b.errorChannel <- err
-			} else {
-				b.failedChapters = append(b.failedChapters, chapter)
-				b.chapterDownloadChannel <- struct{}{}
-			}
-		} else {
-			b.succededChapters = append(b.succededChapters, chapter)
-			b.chapterDownloadChannel <- struct{}{}
-		}
-
-		return nil
+		return chapterDownloadResult{chapter: chapter, err: err}
 	}
 }
 
@@ -273,9 +268,14 @@ func (b *statefulBubble) waitForChapterDownload() tea.Cmd {
 		case res := <-b.chapterDownloadChannel:
 			return res
 		case err := <-b.errorChannel:
-			b.lastError = err
-			return err
+			return downloadError{err: err}
 		}
+	}
+}
+
+func (b *statefulBubble) waitForProgress() tea.Cmd {
+	return func() tea.Msg {
+		return <-b.progressChannel
 	}
 }
 

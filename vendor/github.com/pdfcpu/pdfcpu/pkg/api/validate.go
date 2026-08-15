@@ -17,6 +17,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -24,43 +25,65 @@ import (
 
 	"github.com/pdfcpu/pdfcpu/pkg/log"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
-	"github.com/pkg/errors"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/fault"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-// Validate validates a PDF stream read from rs.
-func Validate(rs io.ReadSeeker, conf *pdfcpu.Configuration) error {
-	if conf == nil {
-		conf = pdfcpu.NewDefaultConfiguration()
+func validationModeHint(mode int) string {
+	if mode != model.ValidationStrict {
+		return ""
 	}
-	conf.Cmd = pdfcpu.VALIDATE
+	return " (try --mode=relaxed)"
+}
 
-	if conf.ValidationMode == pdfcpu.ValidationNone {
-		return errors.New("pdfcpu: validate: mode ValidationNone not allowed")
+func validationError(ctx *model.Context, conf *model.Configuration, err error) error {
+	return fmt.Errorf("validation error (obj#:%d)%s: %w", ctx.CurObj, validationModeHint(conf.ValidationMode), err)
+}
+
+// Validate validates a PDF stream read from rs.
+func Validate(rs io.ReadSeeker, conf *model.Configuration) (err error) {
+	defer fault.Catch(&err)
+
+	if rs == nil {
+		return ErrMissingPDFReadSeeker
 	}
+
+	if conf == nil {
+		conf = model.NewDefaultConfiguration()
+	}
+	conf.Cmd = model.VALIDATE
 
 	from1 := time.Now()
 
 	ctx, err := ReadContext(rs, conf)
 	if err != nil {
-		return err
+		return fmt.Errorf("read context: %w", err)
 	}
 
 	dur1 := time.Since(from1).Seconds()
 	from2 := time.Now()
 
 	if err = ValidateContext(ctx); err != nil {
-		s := ""
-		if conf.ValidationMode == pdfcpu.ValidationStrict {
-			s = " (try -mode=relaxed)"
+		err = validationError(ctx, conf, err)
+	}
+
+	if err == nil && conf.Optimize {
+		if log.CLIEnabled() {
+			log.CLI.Println("optimizing...")
 		}
-		err = errors.Wrap(err, fmt.Sprintf("validation error (obj#:%d)%s", ctx.CurObj, s))
+		if err = pdfcpu.OptimizeXRefTable(ctx); err != nil {
+			err = fmt.Errorf("optimize context: %w", err)
+		}
 	}
 
 	dur2 := time.Since(from2).Seconds()
 	dur := time.Since(from1).Seconds()
 
-	log.Stats.Printf("XRefTable:\n%s\n", ctx)
-	pdfcpu.ValidationTimingStats(dur1, dur2, dur)
+	if log.StatsEnabled() {
+		log.Stats.Printf("XRefTable:\n%s\n", ctx)
+	}
+
+	model.ValidationTimingStats(dur1, dur2, dur)
 
 	// at this stage: no binary breakup available!
 	if ctx.Read.FileSize > 0 {
@@ -71,54 +94,63 @@ func Validate(rs io.ReadSeeker, conf *pdfcpu.Configuration) error {
 }
 
 // ValidateFile validates inFile.
-func ValidateFile(inFile string, conf *pdfcpu.Configuration) error {
+func ValidateFile(inFile string, conf *model.Configuration) (err error) {
+	if inFile == "" {
+		return ErrMissingPDFInput
+	}
+
 	if conf == nil {
-		conf = pdfcpu.NewDefaultConfiguration()
+		conf = model.NewDefaultConfiguration()
 	}
 
-	if conf != nil && conf.ValidationMode == pdfcpu.ValidationNone {
-		return nil
+	if log.CLIEnabled() {
+		log.CLI.Printf("validating(mode=%s) %s ...\n", conf.ValidationModeString(), inFile)
 	}
-
-	log.CLI.Printf("validating(mode=%s) %s ...\n", conf.ValidationModeString(), inFile)
 
 	f, err := os.Open(inFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("validate: open %s: %w", inFile, err)
 	}
 
-	defer f.Close()
+	defer func() {
+		closeErr := f.Close()
+		if err != nil {
+			return
+		}
+		if closeErr != nil {
+			err = fmt.Errorf("validate: close %s: %w", inFile, closeErr)
+		}
+	}()
 
 	if err = Validate(f, conf); err != nil {
-		return err
+		return fmt.Errorf("validate %s: %w", inFile, err)
 	}
 
-	log.CLI.Println("validation ok")
+	if log.CLIEnabled() {
+		log.CLI.Println("validation ok")
+	}
 
 	return nil
 }
 
 // ValidateFiles validates inFiles.
-func ValidateFiles(inFiles []string, conf *pdfcpu.Configuration) error {
+func ValidateFiles(inFiles []string, conf *model.Configuration) error {
 	if conf == nil {
-		conf = pdfcpu.NewDefaultConfiguration()
+		conf = model.NewDefaultConfiguration()
 	}
 
-	if conf != nil && conf.ValidationMode == pdfcpu.ValidationNone {
-		return nil
-	}
-
+	var errs []error
 	for i, fn := range inFiles {
-		if i > 0 {
+		if i > 0 && log.CLIEnabled() {
 			log.CLI.Println()
 		}
 		if err := ValidateFile(fn, conf); err != nil {
 			if len(inFiles) == 1 {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+			errs = append(errs, fmt.Errorf("%s: %w", fn, err))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }

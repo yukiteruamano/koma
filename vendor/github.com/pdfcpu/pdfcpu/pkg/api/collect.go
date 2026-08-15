@@ -17,88 +17,96 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
-	"time"
 
-	"github.com/pdfcpu/pdfcpu/pkg/log"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/fault"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
 // Collect creates a custom PDF page sequence for selected pages of rs and writes the result to w.
-func Collect(rs io.ReadSeeker, w io.Writer, selectedPages []string, conf *pdfcpu.Configuration) error {
+func Collect(rs io.ReadSeeker, w io.Writer, selectedPages []string, conf *model.Configuration) (err error) {
+	defer fault.Catch(&err)
+
+	if rs == nil {
+		return ErrMissingPDFReadSeeker
+	}
+
+	if w == nil {
+		return ErrMissingPDFWriter
+	}
+
 	if conf == nil {
-		conf = pdfcpu.NewDefaultConfiguration()
+		conf = model.NewDefaultConfiguration()
 	}
-	conf.Cmd = pdfcpu.COLLECT
+	conf.Cmd = model.COLLECT
 
-	fromStart := time.Now()
-	ctx, _, _, _, err := readValidateAndOptimize(rs, conf, fromStart)
+	ctx, err := ReadValidateAndOptimize(rs, conf)
 	if err != nil {
-		return err
-	}
-
-	if err := ctx.EnsurePageCount(); err != nil {
-		return err
+		return fmt.Errorf("collect: %w", err)
 	}
 
 	pages, err := PagesForPageCollection(ctx.PageCount, selectedPages)
 	if err != nil {
-		return err
+		return fmt.Errorf("collect: parse page selection: %w", err)
 	}
 
-	ctxDest, err := ctx.ExtractPages(pages, true)
+	ctxDest, err := pdfcpu.ExtractPages(ctx, pages, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("collect: extract pages: %w", err)
 	}
 
-	if conf.ValidationMode != pdfcpu.ValidationNone {
-		if err = ValidateContext(ctxDest); err != nil {
-			return err
-		}
+	if err = Write(ctxDest, w, conf); err != nil {
+		return fmt.Errorf("collect: write output: %w", err)
 	}
-
-	return WriteContext(ctxDest, w)
+	return nil
 }
 
 // CollectFile creates a custom PDF page sequence for inFile and writes the result to outFile.
-func CollectFile(inFile, outFile string, selectedPages []string, conf *pdfcpu.Configuration) (err error) {
+func CollectFile(inFile, outFile string, selectedPages []string, conf *model.Configuration) (err error) {
 	var f1, f2 *os.File
+	ok := false
+
+	if inFile == "" {
+		return ErrMissingPDFInput
+	}
 
 	if f1, err = os.Open(inFile); err != nil {
-		return err
+		return fmt.Errorf("collect: open input %s: %w", inFile, err)
 	}
 
-	tmpFile := inFile + ".tmp"
+	tmpFile := ""
 	if outFile != "" && inFile != outFile {
 		tmpFile = outFile
-		log.CLI.Printf("writing %s...\n", outFile)
+		logWritingTo(outFile)
 	} else {
-		log.CLI.Printf("writing %s...\n", inFile)
+		logWritingTo(inFile)
 	}
-	if f2, err = os.Create(tmpFile); err != nil {
+	staged, err := openStagedOutput(f1, inFile, tmpFile, "collect")
+	if err != nil {
+		return errors.Join(
+			fmt.Errorf("collect: create output: %w", err),
+			closeFile(f1, "collect: close input"),
+		)
+	}
+	f2 = staged.output.file
+
+	defer func() {
+		if !ok {
+			err = staged.cleanup(err)
+			return
+		}
+		err = staged.commit()
+	}()
+
+	if err = Collect(f1, f2, selectedPages, conf); err != nil {
 		return err
 	}
 
-	defer func() {
-		if err != nil {
-			f2.Close()
-			f1.Close()
-			os.Remove(tmpFile)
-			return
-		}
-		if err = f2.Close(); err != nil {
-			return
-		}
-		if err = f1.Close(); err != nil {
-			return
-		}
-		if outFile == "" || inFile == outFile {
-			if err = os.Rename(tmpFile, inFile); err != nil {
-				return
-			}
-		}
-	}()
+	ok = true
 
-	return Collect(f1, f2, selectedPages, conf)
+	return nil
 }

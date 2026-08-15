@@ -1,3 +1,13 @@
+# 2.1.0 - 2020.06.09
+
+ - HTTP tracing support
+ - New callback: OnResponseHeader
+ - Queue fixes
+ - New collector option: Collector.CheckHead
+ - Proxy fixes
+ - Fixed POST revisit checking
+ - Updated dependencies
+
 # 2.0.0 - 2019.11.28
 
  - Breaking change: Change Collector.RedirectHandler member to Collector.SetRedirectHandler function
@@ -12,7 +22,7 @@
 
  - Compatibility with the latest htmlquery package
  - New request shortcut for HEAD requests
- - Check URL availibility before visiting
+ - Check URL availability before visiting
  - Fix proxy URL value
  - Request counter fix
  - Minor fixes in examples

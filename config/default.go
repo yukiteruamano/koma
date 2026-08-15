@@ -3,16 +3,17 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/samber/lo"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/style"
-	"github.com/samber/lo"
-	"github.com/spf13/viper"
 	"reflect"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 )
 
 // Field represents a single config field
@@ -153,6 +154,32 @@ Available variables:
 		true,
 		`Use asynchronous downloader (faster)
 Do no turn it off unless you have some issues`,
+	},
+	{
+		key.DownloaderConcurrency,
+		4,
+		`Maximum number of pages downloaded in parallel
+(only used when downloader.async is true)`,
+	},
+	{
+		key.NetworkTimeout,
+		time.Minute,
+		`HTTP client timeout for network requests`,
+	},
+	{
+		key.NetworkMaxConnsPerHost,
+		8,
+		`Maximum concurrent connections to a single host`,
+	},
+	{
+		key.NetworkMaxRetries,
+		3,
+		`Maximum number of retries for failed network requests`,
+	},
+	{
+		key.NetworkRetryBaseDelay,
+		500 * time.Millisecond,
+		`Base delay for retry backoff (doubles each attempt)`,
 	},
 	{
 		key.DownloaderCreateMangaDir,

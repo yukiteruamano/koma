@@ -17,189 +17,237 @@ limitations under the License.
 package validate
 
 import (
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
+
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
 // see 7.10 Functions
 
-func validateExponentialInterpolationFunctionDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
+func validateExponentialInterpolationFunctionDict(xRefTable *model.XRefTable, d types.Dict) error {
 	dictName := "exponentialInterpolationFunctionDict"
-
 	// Version check
-	err := xRefTable.ValidateVersion(dictName, pdf.V13)
+	err := xRefTable.ValidateVersion(dictName, model.V13)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Domain", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Domain", REQUIRED, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Domain: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Range", OPTIONAL, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Range", OPTIONAL, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Range: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "C0", OPTIONAL, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "C0", OPTIONAL, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.C0: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "C1", OPTIONAL, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "C1", OPTIONAL, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.C1: %w", dictName, err)
 	}
 
-	_, err = validateNumberEntry(xRefTable, d, dictName, "N", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberEntry(xRefTable, d, dictName, "N", REQUIRED, model.V13, nil)
+	if err != nil {
+		return fmt.Errorf("%s.N: %w", dictName, err)
+	}
 
-	return err
+	return nil
 }
 
-func validateStitchingFunctionDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
+func validateStitchingFunctionDict(xRefTable *model.XRefTable, d types.Dict) error {
 	dictName := "stitchingFunctionDict"
-
 	// Version check
-	err := xRefTable.ValidateVersion(dictName, pdf.V13)
+	err := xRefTable.ValidateVersion(dictName, model.V13)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Domain", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Domain", REQUIRED, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Domain: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Range", OPTIONAL, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Range", OPTIONAL, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Range: %w", dictName, err)
 	}
 
-	_, err = validateFunctionArrayEntry(xRefTable, d, dictName, "Functions", REQUIRED, pdf.V13, nil)
+	_, err = validateFunctionArrayEntry(xRefTable, d, dictName, "Functions", REQUIRED, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Functions: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Bounds", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Bounds", REQUIRED, model.V13, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Bounds: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Encode", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Encode", REQUIRED, model.V13, nil)
+	if err != nil {
+		return fmt.Errorf("%s.Encode: %w", dictName, err)
+	}
 
-	return err
+	return nil
 }
 
-func validateSampledFunctionStreamDict(xRefTable *pdf.XRefTable, sd *pdf.StreamDict) error {
-
+func validateSampledFunctionStreamDictVersion(
+	xRefTable *model.XRefTable,
+	sd *types.StreamDict,
+	version model.Version,
+) error {
 	dictName := "sampledFunctionStreamDict"
-
-	// Version check
-	err := xRefTable.ValidateVersion(dictName, pdf.V12)
+	err := xRefTable.ValidateVersion(dictName, version)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Domain", REQUIRED, pdf.V12, nil)
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Domain", REQUIRED, version, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Domain: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Range", REQUIRED, pdf.V12, nil)
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Range", REQUIRED, version, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Range: %w", dictName, err)
 	}
 
-	_, err = validateIntegerArrayEntry(xRefTable, sd.Dict, dictName, "Size", REQUIRED, pdf.V12, nil)
+	_, err = validateIntegerArrayEntry(xRefTable, sd.Dict, dictName, "Size", REQUIRED, version, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Size: %w", dictName, err)
 	}
 
-	validate := func(i int) bool { return pdf.IntMemberOf(i, []int{1, 2, 4, 8, 12, 16, 24, 32}) }
-	_, err = validateIntegerEntry(xRefTable, sd.Dict, dictName, "BitsPerSample", REQUIRED, pdf.V12, validate)
+	validate := func(i int) bool { return types.IntMemberOf(i, []int{1, 2, 4, 8, 12, 16, 24, 32}) }
+	_, err = validateIntegerEntry(xRefTable, sd.Dict, dictName, "BitsPerSample", REQUIRED, version, validate)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.BitsPerSample: %w", dictName, err)
 	}
 
-	_, err = validateIntegerEntry(xRefTable, sd.Dict, dictName, "Order", OPTIONAL, pdf.V12, func(i int) bool { return i == 1 || i == 3 })
+	_, err = validateIntegerEntry(xRefTable, sd.Dict, dictName, "Order", OPTIONAL, version, func(i int) bool { return i == 1 || i == 3 })
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Order: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Encode", OPTIONAL, pdf.V12, nil)
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Encode", OPTIONAL, version, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Encode: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Decode", OPTIONAL, pdf.V12, nil)
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Decode", OPTIONAL, version, nil)
+	if err != nil {
+		return fmt.Errorf("%s.Decode: %w", dictName, err)
+	}
 
-	return err
+	return nil
 }
 
-func validatePostScriptCalculatorFunctionStreamDict(xRefTable *pdf.XRefTable, sd *pdf.StreamDict) error {
+func validateSampledFunctionStreamDict(xRefTable *model.XRefTable, sd *types.StreamDict) error {
+	version := model.V12
+	if xRefTable.ValidationMode == model.ValidationRelaxed {
+		version = model.V11
+	}
+	err := validateSampledFunctionStreamDictVersion(xRefTable, sd, version)
+	if err != nil {
+		return err
+	}
+	if xRefTable.Version() < model.V12 {
+		showDigestedVersionViolation(xRefTable, "sampledFunctionStreamDict")
+	}
+	return nil
+}
 
+func validatePostScriptCalculatorFunctionStreamDictVersion(
+	xRefTable *model.XRefTable,
+	sd *types.StreamDict,
+	version model.Version,
+) error {
 	dictName := "postScriptCalculatorFunctionStreamDict"
-
-	// Version check
-	err := xRefTable.ValidateVersion(dictName, pdf.V13)
+	err := xRefTable.ValidateVersion(dictName, version)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Domain", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Domain", REQUIRED, version, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s.Domain: %w", dictName, err)
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Range", REQUIRED, pdf.V13, nil)
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Range", REQUIRED, version, nil)
+	if err != nil {
+		return fmt.Errorf("%s.Range: %w", dictName, err)
+	}
 
-	return err
+	return nil
 }
 
-func processFunctionDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
-	funcType, err := validateIntegerEntry(xRefTable, d, "functionDict", "FunctionType", REQUIRED, pdf.V10, func(i int) bool { return i == 2 || i == 3 })
+func validatePostScriptCalculatorFunctionStreamDict(xRefTable *model.XRefTable, sd *types.StreamDict) error {
+	version := model.V13
+	if xRefTable.ValidationMode == model.ValidationRelaxed {
+		version = model.V12
+	}
+	err := validatePostScriptCalculatorFunctionStreamDictVersion(xRefTable, sd, version)
 	if err != nil {
 		return err
+	}
+	if xRefTable.Version() < model.V13 {
+		showDigestedVersionViolation(xRefTable, "postScriptCalculatorFunctionStreamDict")
+	}
+	return nil
+}
+
+func processFunctionDict(xRefTable *model.XRefTable, d types.Dict) error {
+	funcType, err := validateIntegerEntry(xRefTable, d, "functionDict", "FunctionType", REQUIRED, model.V10, func(i int) bool { return i == 2 || i == 3 })
+	if err != nil {
+		return fmt.Errorf("function dictionary: FunctionType: %w", err)
 	}
 
 	switch *funcType {
 
 	case 2:
-		err = validateExponentialInterpolationFunctionDict(xRefTable, d)
+		if err = validateExponentialInterpolationFunctionDict(xRefTable, d); err != nil {
+			return fmt.Errorf("exponential interpolation function: %w", err)
+		}
 
 	case 3:
-		err = validateStitchingFunctionDict(xRefTable, d)
+		if err = validateStitchingFunctionDict(xRefTable, d); err != nil {
+			return fmt.Errorf("stitching function: %w", err)
+		}
 
 	}
 
-	return err
+	return nil
 }
 
-func processFunctionStreamDict(xRefTable *pdf.XRefTable, sd *pdf.StreamDict) error {
-
-	funcType, err := validateIntegerEntry(xRefTable, sd.Dict, "functionDict", "FunctionType", REQUIRED, pdf.V10, func(i int) bool { return i == 0 || i == 4 })
+func processFunctionStreamDict(xRefTable *model.XRefTable, sd *types.StreamDict) error {
+	funcType, err := validateIntegerEntry(xRefTable, sd.Dict, "functionDict", "FunctionType", REQUIRED, model.V10, func(i int) bool { return i == 0 || i == 4 })
 	if err != nil {
-		return err
+		return fmt.Errorf("function stream dictionary: FunctionType: %w", err)
 	}
 
 	switch *funcType {
 	case 0:
-		err = validateSampledFunctionStreamDict(xRefTable, sd)
+		if err = validateSampledFunctionStreamDict(xRefTable, sd); err != nil {
+			return fmt.Errorf("sampled function: %w", err)
+		}
 
 	case 4:
-		err = validatePostScriptCalculatorFunctionStreamDict(xRefTable, sd)
+		if err = validatePostScriptCalculatorFunctionStreamDict(xRefTable, sd); err != nil {
+			return fmt.Errorf("PostScript calculator function: %w", err)
+		}
 
 	}
 
-	return err
+	return nil
 }
 
-func processFunction(xRefTable *pdf.XRefTable, o pdf.Object) (err error) {
-
+func processFunction(xRefTable *model.XRefTable, o types.Object) (err error) {
 	// Function dict: dict or stream dict with required entry "FunctionType" (integer):
 	// 0: Sampled function (stream dict)
 	// 2: Exponential interpolation function (dict)
@@ -208,31 +256,30 @@ func processFunction(xRefTable *pdf.XRefTable, o pdf.Object) (err error) {
 
 	switch o := o.(type) {
 
-	case pdf.Dict:
+	case types.Dict:
 
 		// process function  2,3
 		err = processFunctionDict(xRefTable, o)
 
-	case pdf.StreamDict:
+	case types.StreamDict:
 
 		// process function  0,4
 		err = processFunctionStreamDict(xRefTable, &o)
 
 	default:
-		return errors.New("pdfcpu: processFunction: obj must be dict or stream dict")
+		return fmt.Errorf("function object: expected dict or stream dict, got %T", o)
 	}
 
 	return err
 }
 
-func validateFunction(xRefTable *pdf.XRefTable, o pdf.Object) error {
-
+func validateFunction(xRefTable *model.XRefTable, o types.Object) error {
 	o, err := xRefTable.Dereference(o)
 	if err != nil {
-		return err
+		return fmt.Errorf("function: dereference: %w", err)
 	}
 	if o == nil {
-		return errors.New("pdfcpu: validateFunction: missing object")
+		return errors.New("function: missing object")
 	}
 
 	return processFunction(xRefTable, o)

@@ -1,10 +1,12 @@
 package anilist
 
 import (
+	"sync"
+
 	"github.com/metafates/gache"
+	"github.com/samber/mo"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/mo"
 	"path/filepath"
 	"time"
 )
@@ -14,11 +16,15 @@ type cacheData[K comparable, T any] struct {
 }
 
 type cacher[K comparable, T any] struct {
+	mu         sync.Mutex
 	internal   *gache.Cache[*cacheData[K, T]]
 	keyWrapper func(K) K
 }
 
 func (c *cacher[K, T]) Get(key K) mo.Option[T] {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	data, expired, err := c.internal.Get()
 	if err != nil || expired || data == nil {
 		return mo.None[T]()
@@ -33,6 +39,9 @@ func (c *cacher[K, T]) Get(key K) mo.Option[T] {
 }
 
 func (c *cacher[K, T]) Set(key K, t T) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	data, expired, err := c.internal.Get()
 	if err != nil {
 		return err
@@ -48,7 +57,32 @@ func (c *cacher[K, T]) Set(key K, t T) error {
 	}
 }
 
+// SetMany updates many keys in a single read-modify-write, so the whole cache
+// file is only rewritten once instead of once per key.
+func (c *cacher[K, T]) SetMany(kvs map[K]T) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	data, expired, err := c.internal.Get()
+	if err != nil {
+		return err
+	}
+
+	if expired || data == nil {
+		data = &cacheData[K, T]{Mangas: make(map[K]T)}
+	}
+
+	for k, v := range kvs {
+		data.Mangas[c.keyWrapper(k)] = v
+	}
+
+	return c.internal.Set(data)
+}
+
 func (c *cacher[K, T]) Delete(key K) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	data, expired, err := c.internal.Get()
 	if err != nil {
 		return err

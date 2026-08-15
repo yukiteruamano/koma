@@ -17,16 +17,22 @@ limitations under the License.
 package validate
 
 import (
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
+
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
 func validateDeviceColorSpaceName(s string) bool {
-	return pdf.MemberOf(s, []string{pdf.DeviceGrayCS, pdf.DeviceRGBCS, pdf.DeviceCMYKCS})
+	return types.MemberOf(s, []string{model.DeviceGrayCS, model.DeviceRGBCS, model.DeviceCMYKCS})
 }
 
-func validateCalGrayColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
+func validateAllColorSpaceNamesExceptPattern(s string) bool {
+	return types.MemberOf(s, []string{model.DeviceGrayCS, model.DeviceRGBCS, model.DeviceCMYKCS, model.CalGrayCS, model.CalRGBCS, model.LabCS, model.ICCBasedCS, model.IndexedCS, model.SeparationCS, model.DeviceNCS})
+}
 
+func validateCalGrayColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	dictName := "calGrayCSDict"
 
 	// Version check
@@ -36,20 +42,23 @@ func validateCalGrayColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersi
 	}
 
 	if len(a) != 2 {
-		return errors.Errorf("validateCalGrayColorSpace: invalid array length %d (expected 2) \n.", len(a))
+		return fmt.Errorf("CalGray color space: invalid array length %d, expected 2", len(a))
 	}
 
 	d, err := xRefTable.DereferenceDict(a[1])
-	if err != nil || d == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("CalGray color space parameters: dereference dict: %w", err)
+	}
+	if d == nil {
+		return errors.New("CalGray color space parameters: missing dict")
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "WhitePoint", REQUIRED, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "WhitePoint", REQUIRED, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "BlackPoint", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "BlackPoint", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
@@ -59,8 +68,7 @@ func validateCalGrayColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersi
 	return err
 }
 
-func validateCalRGBColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
-
+func validateCalRGBColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	dictName := "calRGBCSDict"
 
 	err := xRefTable.ValidateVersion(dictName, sinceVersion)
@@ -69,36 +77,38 @@ func validateCalRGBColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersio
 	}
 
 	if len(a) != 2 {
-		return errors.Errorf("validateCalRGBColorSpace: invalid array length %d (expected 2) \n.", len(a))
+		return fmt.Errorf("CalRGB color space: invalid array length %d, expected 2", len(a))
 	}
 
 	d, err := xRefTable.DereferenceDict(a[1])
-	if err != nil || d == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("CalRGB color space parameters: dereference dict: %w", err)
+	}
+	if d == nil {
+		return errors.New("CalRGB color space parameters: missing dict")
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "WhitePoint", REQUIRED, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "WhitePoint", REQUIRED, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "BlackPoint", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "BlackPoint", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Gamma", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Gamma", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Matrix", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 9 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Matrix", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 9 })
 
 	return err
 }
 
-func validateLabColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
-
+func validateLabColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	dictName := "labCSDict"
 
 	err := xRefTable.ValidateVersion(dictName, sinceVersion)
@@ -107,37 +117,65 @@ func validateLabColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion p
 	}
 
 	if len(a) != 2 {
-		return errors.Errorf("validateLabColorSpace: invalid array length %d (expected 2) \n.", len(a))
+		return fmt.Errorf("Lab color space: invalid array length %d, expected 2", len(a))
 	}
 
 	d, err := xRefTable.DereferenceDict(a[1])
-	if err != nil || d == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("Lab color space parameters: dereference dict: %w", err)
+	}
+	if d == nil {
+		return errors.New("Lab color space parameters: missing dict")
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "WhitePoint", REQUIRED, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "WhitePoint", REQUIRED, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "BlackPoint", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 3 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "BlackPoint", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 3 })
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Range", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 4 })
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Range", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 4 })
 
 	return err
 }
 
-func validateICCBasedColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
+func validateAlternateColorSpaceEntryForICC(xRefTable *model.XRefTable, d types.Dict, dictName string, entryName string, required bool, excludePatternCS bool) error {
+	o, err := validateEntry(xRefTable, d, dictName, entryName, required, model.V10)
+	if err != nil || o == nil {
+		return err
+	}
 
+	switch o := o.(type) {
+
+	case types.Name:
+		if ok := validateAllColorSpaceNamesExceptPattern(o.Value()); !ok {
+			err = fmt.Errorf("%s.%s: invalid alternate color space name %q", dictName, entryName, o.Value())
+		}
+
+	case types.Array:
+		if err = validateColorSpaceArray(xRefTable, o, excludePatternCS); err != nil {
+			err = fmt.Errorf("%s.%s: %w", dictName, entryName, err)
+		}
+
+	default:
+		err = fmt.Errorf("%s.%s: expected name or color space array, got %T", dictName, entryName, o)
+
+	}
+
+	return err
+}
+
+func validateICCBasedColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	// see 8.6.5.5
 
 	dictName := "ICCBasedColorSpace"
 
-	if xRefTable.ValidationMode == pdf.ValidationRelaxed {
-		sinceVersion = pdf.V12
+	if xRefTable.ValidationMode == model.ValidationRelaxed {
+		sinceVersion = model.V12
 	}
 	err := xRefTable.ValidateVersion(dictName, sinceVersion)
 	if err != nil {
@@ -145,59 +183,82 @@ func validateICCBasedColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVers
 	}
 
 	if len(a) != 2 {
-		return errors.Errorf("validateICCBasedColorSpace: invalid array length %d (expected 2) \n.", len(a))
+		return fmt.Errorf("ICCBased color space: invalid array length %d, expected 2", len(a))
+	}
+
+	ir, ok := a[1].(types.IndirectRef)
+	if !ok {
+		return fmt.Errorf("ICCBased color space profile: expected indirect reference, got %T", a[1])
+	}
+
+	valid, err := xRefTable.IsValid(ir)
+	if err != nil {
+		return fmt.Errorf("ICCBased color space profile: check valid: %w", err)
+	}
+	if valid {
+		return nil
 	}
 
 	sd, err := validateStreamDict(xRefTable, a[1])
-	if err != nil || sd == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("ICCBased color space profile: %w", err)
+	}
+	if sd == nil {
+		return errors.New("ICCBased color space profile: missing stream dict")
+	}
+	if err := xRefTable.SetValid(ir); err != nil {
+		return fmt.Errorf("ICCBased color space profile: mark valid: %w", err)
 	}
 
-	validate := func(i int) bool { return pdf.IntMemberOf(i, []int{1, 3, 4}) }
+	validate := func(i int) bool { return types.IntMemberOf(i, []int{1, 3, 4}) }
 	N, err := validateIntegerEntry(xRefTable, sd.Dict, dictName, "N", REQUIRED, sinceVersion, validate)
 	if err != nil {
 		return err
 	}
 
-	err = validateColorSpaceEntry(xRefTable, sd.Dict, dictName, "Alternate", OPTIONAL, ExcludePatternCS)
+	err = validateAlternateColorSpaceEntryForICC(xRefTable, sd.Dict, dictName, "Alternate", OPTIONAL, ExcludePatternCS)
 	if err != nil {
 		return err
 	}
 
-	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Range", OPTIONAL, sinceVersion, func(a pdf.Array) bool { return len(a) == 2*N.Value() })
+	_, err = validateNumberArrayEntry(xRefTable, sd.Dict, dictName, "Range", OPTIONAL, sinceVersion, func(a types.Array) bool { return len(a) == 2*N.Value() })
 	if err != nil {
 		return err
 	}
 
 	// Metadata, stream, optional since V1.4
-	return validateMetadata(xRefTable, sd.Dict, OPTIONAL, pdf.V14)
+	return validateMetadata(xRefTable, sd.Dict, OPTIONAL, model.V14)
 }
 
-func validateIndexedColorSpaceLookuptable(xRefTable *pdf.XRefTable, o pdf.Object, sinceVersion pdf.Version) error {
-
+func validateIndexedColorSpaceLookuptable(xRefTable *model.XRefTable, o types.Object, sinceVersion model.Version) error {
 	o, err := xRefTable.Dereference(o)
-	if err != nil || o == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("Indexed color space lookup table: dereference: %w", err)
+	}
+	if o == nil {
+		if xRefTable.ValidationMode == model.ValidationRelaxed {
+			return nil
+		}
+		return errors.New("Indexed color space lookup table: missing object")
 	}
 
 	switch o.(type) {
 
-	case pdf.StringLiteral, pdf.HexLiteral:
-		err = xRefTable.ValidateVersion("IndexedColorSpaceLookuptable", pdf.V12)
+	case types.StringLiteral, types.HexLiteral:
+		err = xRefTable.ValidateVersion("IndexedColorSpaceLookuptable", model.V12)
 
-	case pdf.StreamDict:
+	case types.StreamDict:
 		err = xRefTable.ValidateVersion("IndexedColorSpaceLookuptable", sinceVersion)
 
 	default:
-		err = errors.Errorf("validateIndexedColorSpaceLookuptable: invalid type\n")
+		err = fmt.Errorf("Indexed color space lookup table: expected string, hex literal or stream dict, got %T", o)
 
 	}
 
 	return err
 }
 
-func validateIndexedColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
-
+func validateIndexedColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	// see 8.6.6.3
 
 	err := xRefTable.ValidateVersion("IndexedColorSpace", sinceVersion)
@@ -206,49 +267,50 @@ func validateIndexedColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersi
 	}
 
 	if len(a) != 4 {
-		return errors.Errorf("validateIndexedColorSpace: invalid array length %d (expected 4) \n.", len(a))
+		return fmt.Errorf("Indexed color space: invalid array length %d, expected 4", len(a))
 	}
 
 	// arr[1] base: base colorspace
 	err = validateColorSpace(xRefTable, a[1], ExcludePatternCS)
 	if err != nil {
-		return err
+		return fmt.Errorf("Indexed color space base: %w", err)
 	}
 
 	// arr[2] hival: 0 <= int <= 255
 	_, err = validateInteger(xRefTable, a[2], func(i int) bool { return i >= 0 && i <= 255 })
 	if err != nil {
-		return err
+		return fmt.Errorf("Indexed color space hival: %w", err)
 	}
 
 	// arr[3] lookup: stream since V1.2 or byte string
-	return validateIndexedColorSpaceLookuptable(xRefTable, a[3], sinceVersion)
+	if err := validateIndexedColorSpaceLookuptable(xRefTable, a[3], sinceVersion); err != nil {
+		return fmt.Errorf("Indexed color space lookup: %w", err)
+	}
+	return nil
 }
 
-func validatePatternColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
-
+func validatePatternColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	err := xRefTable.ValidateVersion("PatternColorSpace", sinceVersion)
 	if err != nil {
 		return err
 	}
 
 	if len(a) < 1 || len(a) > 2 {
-		return errors.Errorf("validatePatternColorSpace: invalid array length %d (expected 1 or 2) \n.", len(a))
+		return fmt.Errorf("Pattern color space: invalid array length %d, expected 1 or 2", len(a))
 	}
 
 	// 8.7.3.3: arr[1]: name of underlying color space, any cs except PatternCS
 	if len(a) == 2 {
 		err := validateColorSpace(xRefTable, a[1], ExcludePatternCS)
 		if err != nil {
-			return err
+			return fmt.Errorf("Pattern color space underlying color space: %w", err)
 		}
 	}
 
 	return nil
 }
 
-func validateSeparationColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
-
+func validateSeparationColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	// see 8.6.6.4
 
 	err := xRefTable.ValidateVersion("SeparationColorSpace", sinceVersion)
@@ -257,38 +319,40 @@ func validateSeparationColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVe
 	}
 
 	if len(a) != 4 {
-		return errors.Errorf("validateSeparationColorSpace: invalid array length %d (expected 4) \n.", len(a))
+		return fmt.Errorf("Separation color space: invalid array length %d, expected 4", len(a))
 	}
 
 	// arr[1]: colorant name, arbitrary
 	_, err = validateName(xRefTable, a[1], nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("Separation color space colorant name: %w", err)
 	}
 
 	// arr[2]: alternate space
 	err = validateColorSpace(xRefTable, a[2], ExcludePatternCS)
 	if err != nil {
-		return err
+		return fmt.Errorf("Separation color space alternate color space: %w", err)
 	}
 
 	// arr[3]: tintTransform, function
-	return validateFunction(xRefTable, a[3])
+	if err := validateFunction(xRefTable, a[3]); err != nil {
+		return fmt.Errorf("Separation color space tint transform: %w", err)
+	}
+	return nil
 }
 
-func validateDeviceNColorSpaceColorantsDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
-	for _, obj := range d {
+func validateDeviceNColorSpaceColorantsDict(xRefTable *model.XRefTable, d types.Dict) error {
+	for name, obj := range d {
 
 		a, err := xRefTable.DereferenceArray(obj)
 		if err != nil {
-			return err
+			return fmt.Errorf("DeviceN colorants %s: dereference Separation color space array: %w", name, err)
 		}
 
 		if a != nil {
-			err = validateSeparationColorSpace(xRefTable, a, pdf.V12)
+			err = validateSeparationColorSpace(xRefTable, a, model.V12)
 			if err != nil {
-				return err
+				return fmt.Errorf("DeviceN colorants %s: %w", name, err)
 			}
 		}
 
@@ -297,8 +361,7 @@ func validateDeviceNColorSpaceColorantsDict(xRefTable *pdf.XRefTable, d pdf.Dict
 	return nil
 }
 
-func validateDeviceNColorSpaceProcessDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
+func validateDeviceNColorSpaceProcessDict(xRefTable *model.XRefTable, d types.Dict) error {
 	dictName := "DeviceNCSProcessDict"
 
 	err := validateColorSpaceEntry(xRefTable, d, dictName, "ColorSpace", REQUIRED, true)
@@ -306,40 +369,37 @@ func validateDeviceNColorSpaceProcessDict(xRefTable *pdf.XRefTable, d pdf.Dict) 
 		return err
 	}
 
-	_, err = validateNameArrayEntry(xRefTable, d, dictName, "Components", REQUIRED, pdf.V10, nil)
+	_, err = validateNameArrayEntry(xRefTable, d, dictName, "Components", REQUIRED, model.V10, nil)
 
 	return err
 }
 
-func validateDeviceNColorSpaceSoliditiesDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
-	for _, obj := range d {
+func validateDeviceNColorSpaceSoliditiesDict(xRefTable *model.XRefTable, d types.Dict) error {
+	for name, obj := range d {
 		_, err := validateFloat(xRefTable, obj, func(f float64) bool { return f >= 0.0 && f <= 1.0 })
 		if err != nil {
-			return err
+			return fmt.Errorf("DeviceN solidities %s: %w", name, err)
 		}
 	}
 
 	return nil
 }
 
-func validateDeviceNColorSpaceDotGainDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
-	for _, obj := range d {
+func validateDeviceNColorSpaceDotGainDict(xRefTable *model.XRefTable, d types.Dict) error {
+	for name, obj := range d {
 		err := validateFunction(xRefTable, obj)
 		if err != nil {
-			return err
+			return fmt.Errorf("DeviceN dot gain %s: %w", name, err)
 		}
 	}
 
 	return nil
 }
 
-func validateDeviceNColorSpaceMixingHintsDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
-
+func validateDeviceNColorSpaceMixingHintsDict(xRefTable *model.XRefTable, d types.Dict) error {
 	dictName := "deviceNCSMixingHintsDict"
 
-	d1, err := validateDictEntry(xRefTable, d, dictName, "Solidities", OPTIONAL, pdf.V11, nil)
+	d1, err := validateDictEntry(xRefTable, d, dictName, "Solidities", OPTIONAL, model.V11, nil)
 	if err != nil {
 		return err
 	}
@@ -350,12 +410,12 @@ func validateDeviceNColorSpaceMixingHintsDict(xRefTable *pdf.XRefTable, d pdf.Di
 		}
 	}
 
-	_, err = validateNameArrayEntry(xRefTable, d, dictName, "PrintingOrder", REQUIRED, pdf.V10, nil)
+	_, err = validateNameArrayEntry(xRefTable, d, dictName, "PrintingOrder", REQUIRED, model.V10, nil)
 	if err != nil {
 		return err
 	}
 
-	d1, err = validateDictEntry(xRefTable, d, dictName, "DotGain", OPTIONAL, pdf.V11, nil)
+	d1, err = validateDictEntry(xRefTable, d, dictName, "DotGain", OPTIONAL, model.V11, nil)
 	if err != nil {
 		return err
 	}
@@ -367,18 +427,20 @@ func validateDeviceNColorSpaceMixingHintsDict(xRefTable *pdf.XRefTable, d pdf.Di
 	return err
 }
 
-func validateDeviceNColorSpaceAttributesDict(xRefTable *pdf.XRefTable, o pdf.Object) error {
-
+func validateDeviceNColorSpaceAttributesDict(xRefTable *model.XRefTable, o types.Object) error {
 	d, err := xRefTable.DereferenceDict(o)
-	if err != nil || d == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("DeviceN color space attributes: dereference dict: %w", err)
+	}
+	if d == nil {
+		return errors.New("DeviceN color space attributes: missing dict")
 	}
 
 	dictName := "deviceNCSAttributesDict"
 
-	sinceVersion := pdf.V16
-	if xRefTable.ValidationMode == pdf.ValidationRelaxed {
-		sinceVersion = pdf.V13
+	sinceVersion := model.V16
+	if xRefTable.ValidationMode == model.ValidationRelaxed {
+		sinceVersion = model.V13
 	}
 
 	_, err = validateNameEntry(xRefTable, d, dictName, "Subtype", OPTIONAL, sinceVersion, func(s string) bool { return s == "DeviceN" || s == "NChannel" })
@@ -386,7 +448,7 @@ func validateDeviceNColorSpaceAttributesDict(xRefTable *pdf.XRefTable, o pdf.Obj
 		return err
 	}
 
-	d1, err := validateDictEntry(xRefTable, d, dictName, "Colorants", OPTIONAL, pdf.V11, nil)
+	d1, err := validateDictEntry(xRefTable, d, dictName, "Colorants", OPTIONAL, model.V11, nil)
 	if err != nil {
 		return err
 	}
@@ -410,7 +472,7 @@ func validateDeviceNColorSpaceAttributesDict(xRefTable *pdf.XRefTable, o pdf.Obj
 		}
 	}
 
-	d1, err = validateDictEntry(xRefTable, d, dictName, "MixingHints", OPTIONAL, pdf.V16, nil)
+	d1, err = validateDictEntry(xRefTable, d, dictName, "MixingHints", OPTIONAL, model.V16, nil)
 	if err != nil {
 		return err
 	}
@@ -422,8 +484,7 @@ func validateDeviceNColorSpaceAttributesDict(xRefTable *pdf.XRefTable, o pdf.Obj
 	return err
 }
 
-func validateDeviceNColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersion pdf.Version) error {
-
+func validateDeviceNColorSpace(xRefTable *model.XRefTable, a types.Array, sinceVersion model.Version) error {
 	// see 8.6.6.5
 
 	err := xRefTable.ValidateVersion("DeviceNColorSpace", sinceVersion)
@@ -432,210 +493,237 @@ func validateDeviceNColorSpace(xRefTable *pdf.XRefTable, a pdf.Array, sinceVersi
 	}
 
 	if len(a) < 4 || len(a) > 5 {
-		return errors.Errorf("writeDeviceNColorSpace: invalid array length %d (expected 4 or 5) \n.", len(a))
+		return fmt.Errorf("DeviceN color space: invalid array length %d, expected 4 or 5", len(a))
 	}
 
 	// arr[1]: array of names specifying the individual color components
 	// length subject to implementation limit.
 	_, err = validateNameArray(xRefTable, a[1])
 	if err != nil {
-		return err
+		return fmt.Errorf("DeviceN color space component names: %w", err)
 	}
 
 	// arr[2]: alternate space
 	err = validateColorSpace(xRefTable, a[2], ExcludePatternCS)
 	if err != nil {
-		return err
+		return fmt.Errorf("DeviceN color space alternate color space: %w", err)
 	}
 
 	// arr[3]: tintTransform, function
 	err = validateFunction(xRefTable, a[3])
 	if err != nil {
-		return err
+		return fmt.Errorf("DeviceN color space tint transform: %w", err)
 	}
 
 	// arr[4]: color space attributes dict, optional
 	if len(a) == 5 {
-		err = validateDeviceNColorSpaceAttributesDict(xRefTable, a[4])
+		if err = validateDeviceNColorSpaceAttributesDict(xRefTable, a[4]); err != nil {
+			return fmt.Errorf("DeviceN color space attributes: %w", err)
+		}
 	}
 
-	return err
+	return nil
 }
 
-func validateCSArray(xRefTable *pdf.XRefTable, a pdf.Array, csName string) error {
-
-	// see 8.6 Color Spaces
-
+func validateCSArray(xRefTable *model.XRefTable, a types.Array, csName string) error {
 	switch csName {
 
 	// CIE-based
-	case pdf.CalGrayCS:
-		return validateCalGrayColorSpace(xRefTable, a, pdf.V11)
+	case model.CalGrayCS:
+		return validateCalGrayColorSpace(xRefTable, a, model.V11)
 
-	case pdf.CalRGBCS:
-		return validateCalRGBColorSpace(xRefTable, a, pdf.V11)
+	case model.CalRGBCS:
+		return validateCalRGBColorSpace(xRefTable, a, model.V11)
 
-	case pdf.LabCS:
-		return validateLabColorSpace(xRefTable, a, pdf.V11)
+	case model.LabCS:
+		return validateLabColorSpace(xRefTable, a, model.V11)
 
-	case pdf.ICCBasedCS:
-		return validateICCBasedColorSpace(xRefTable, a, pdf.V13)
+	case model.ICCBasedCS:
+		return validateICCBasedColorSpace(xRefTable, a, model.V13)
 
 	// Special
-	case pdf.IndexedCS:
-		return validateIndexedColorSpace(xRefTable, a, pdf.V11)
+	case model.IndexedCS:
+		return validateIndexedColorSpace(xRefTable, a, model.V11)
 
-	case pdf.PatternCS:
-		return validatePatternColorSpace(xRefTable, a, pdf.V12)
+	case model.PatternCS:
+		return validatePatternColorSpace(xRefTable, a, model.V12)
 
-	case pdf.SeparationCS:
-		return validateSeparationColorSpace(xRefTable, a, pdf.V12)
+	case model.SeparationCS:
+		return validateSeparationColorSpace(xRefTable, a, model.V12)
 
-	case pdf.DeviceNCS:
-		return validateDeviceNColorSpace(xRefTable, a, pdf.V13)
+	case model.DeviceNCS:
+		return validateDeviceNColorSpace(xRefTable, a, model.V13)
 
 	default:
-		return errors.Errorf("validateColorSpaceArray: undefined color space: %s\n", csName)
+		return fmt.Errorf("color space array: undefined color space %q", csName)
 	}
 
 }
 
-func validateColorSpaceArraySubset(xRefTable *pdf.XRefTable, a pdf.Array, cs []string) error {
-
-	csName, ok := a[0].(pdf.Name)
+func validateColorSpaceArraySubset(xRefTable *model.XRefTable, a types.Array, cs []string) error {
+	if len(a) == 0 {
+		return errors.New("color space array: empty")
+	}
+	csName, ok := a[0].(types.Name)
 	if !ok {
-		return errors.New("pdfcpu: validateColorSpaceArraySubset: corrupt Colorspace array")
+		return fmt.Errorf("color space array[0]: expected name, got %T", a[0])
 	}
 
 	for _, v := range cs {
 		if csName.Value() == v {
-			return validateCSArray(xRefTable, a, v)
+			if err := validateCSArray(xRefTable, a, v); err != nil {
+				return fmt.Errorf("color space %s: %w", csName.Value(), err)
+			}
+			return nil
 		}
 	}
 
-	return errors.Errorf("pdfcpu: validateColorSpaceArraySubset: invalid color space: %s\n", csName)
+	return fmt.Errorf("color space array: invalid color space %q", csName.Value())
 }
 
-func validateColorSpaceArray(xRefTable *pdf.XRefTable, a pdf.Array, excludePatternCS bool) (err error) {
-
-	// see 8.6 Color Spaces
-
-	name, ok := a[0].(pdf.Name)
+func validateColorSpaceArray(xRefTable *model.XRefTable, a types.Array, excludePatternCS bool) (err error) {
+	if len(a) == 0 {
+		return errors.New("color space array: empty")
+	}
+	name, ok := a[0].(types.Name)
 	if !ok {
-		return errors.New("pdfcpu: validateColorSpaceArray: corrupt Colorspace array")
+		return fmt.Errorf("color space array[0]: expected name, got %T", a[0])
 	}
 
 	switch name {
 
 	// CIE-based
-	case pdf.CalGrayCS:
-		err = validateCalGrayColorSpace(xRefTable, a, pdf.V11)
+	case model.CalGrayCS:
+		err = validateCalGrayColorSpace(xRefTable, a, model.V11)
 
-	case pdf.CalRGBCS:
-		err = validateCalRGBColorSpace(xRefTable, a, pdf.V11)
+	case model.CalRGBCS:
+		err = validateCalRGBColorSpace(xRefTable, a, model.V11)
 
-	case pdf.LabCS:
-		err = validateLabColorSpace(xRefTable, a, pdf.V11)
+	case model.LabCS:
+		err = validateLabColorSpace(xRefTable, a, model.V11)
 
-	case pdf.ICCBasedCS:
-		err = validateICCBasedColorSpace(xRefTable, a, pdf.V13)
+	case model.ICCBasedCS:
+		err = validateICCBasedColorSpace(xRefTable, a, model.V13)
 
 	// Special
-	case pdf.IndexedCS:
-		err = validateIndexedColorSpace(xRefTable, a, pdf.V11)
+	case model.IndexedCS:
+		err = validateIndexedColorSpace(xRefTable, a, model.V11)
 
-	case pdf.PatternCS:
+	case model.PatternCS:
 		if excludePatternCS {
-			return errors.New("pdfcpu: validateColorSpaceArray: Pattern color space not allowed")
+			return errors.New("color space Pattern: not allowed here")
 		}
-		err = validatePatternColorSpace(xRefTable, a, pdf.V12)
+		err = validatePatternColorSpace(xRefTable, a, model.V12)
 
-	case pdf.SeparationCS:
-		err = validateSeparationColorSpace(xRefTable, a, pdf.V12)
+	case model.SeparationCS:
+		err = validateSeparationColorSpace(xRefTable, a, model.V12)
 
-	case pdf.DeviceNCS:
-		err = validateDeviceNColorSpace(xRefTable, a, pdf.V13)
+	case model.DeviceNCS:
+		err = validateDeviceNColorSpace(xRefTable, a, model.V13)
+
+	case model.DeviceGrayCS, model.DeviceRGBCS, model.DeviceCMYKCS:
+		if xRefTable.ValidationMode != model.ValidationRelaxed {
+			err = fmt.Errorf("color space array: device color space %q must be a name object", name.Value())
+		}
 
 	default:
-		err = errors.Errorf("pdfcpu: validateColorSpaceArray: undefined color space: %s\n", name)
+		err = fmt.Errorf("color space array: undefined color space %q", name.Value())
 	}
 
-	return err
+	if err != nil {
+		return fmt.Errorf("color space %s: %w", name.Value(), err)
+	}
+	return nil
 }
 
-func validateColorSpace(xRefTable *pdf.XRefTable, o pdf.Object, excludePatternCS bool) error {
-
+func validateColorSpace(xRefTable *model.XRefTable, o types.Object, excludePatternCS bool) error {
 	o, err := xRefTable.Dereference(o)
-	if err != nil || o == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("color space: dereference: %w", err)
+	}
+	if o == nil {
+		return errors.New("color space: missing object")
 	}
 
 	switch o := o.(type) {
 
-	case pdf.Name:
-		validateSpecialColorSpaceName := func(s string) bool { return pdf.MemberOf(s, []string{"Pattern"}) }
+	case types.Name:
+		validateSpecialColorSpaceName := func(s string) bool { return types.MemberOf(s, []string{"Pattern"}) }
 		if ok := validateDeviceColorSpaceName(o.Value()) || validateSpecialColorSpaceName(o.Value()); !ok {
-			err = errors.Errorf("validateColorSpace: invalid device color space name: %v\n", o)
+			err = fmt.Errorf("color space name: invalid device color space name %q", o.Value())
 		}
 
-	case pdf.Array:
+	case types.Array:
 		err = validateColorSpaceArray(xRefTable, o, excludePatternCS)
 
 	default:
-		err = errors.New("pdfcpu: validateColorSpace: corrupt obj typ, must be Name or Array")
-
+		if xRefTable.ValidationMode == model.ValidationStrict {
+			return fmt.Errorf("color space: expected name or array, got %T", o)
+		}
+		model.ShowSkipped(fmt.Sprintf("invalid color space type: %s", o))
 	}
 
 	return err
 }
 
-func validateColorSpaceEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string, entryName string, required bool, excludePatternCS bool) error {
-
-	o, err := validateEntry(xRefTable, d, dictName, entryName, required, pdf.V10)
+func validateColorSpaceEntry(xRefTable *model.XRefTable, d types.Dict, dictName string, entryName string, required bool, excludePatternCS bool) error {
+	o, err := validateEntry(xRefTable, d, dictName, entryName, required, model.V10)
 	if err != nil || o == nil {
-		return err
+		if err != nil {
+			return fmt.Errorf("%s.%s: %w", dictName, entryName, err)
+		}
+		return nil
 	}
 
 	switch o := o.(type) {
 
-	case pdf.Name:
+	case types.Name:
 		if ok := validateDeviceColorSpaceName(o.Value()); !ok {
-			err = errors.Errorf("pdfcpu: validateColorSpaceEntry: Name:%s\n", o.Value())
+			if xRefTable.ValidationMode == model.ValidationStrict {
+				return fmt.Errorf("%s.%s: invalid device color space name %q", dictName, entryName, o.Value())
+			}
+			model.ShowSkipped(fmt.Sprintf("invalid colorSpaceEntry: %s", o.Value()))
 		}
 
-	case pdf.Array:
-		err = validateColorSpaceArray(xRefTable, o, excludePatternCS)
+	case types.Array:
+		if err = validateColorSpaceArray(xRefTable, o, excludePatternCS); err != nil {
+			err = fmt.Errorf("%s.%s: %w", dictName, entryName, err)
+		}
 
 	default:
-		err = errors.Errorf("pdfcpu: validateColorSpaceEntry: dict=%s corrupt entry \"%s\"\n", dictName, entryName)
+		err = fmt.Errorf("%s.%s: expected name or color space array, got %T", dictName, entryName, o)
 
 	}
 
 	return err
 }
 
-func validateColorSpaceResourceDict(xRefTable *pdf.XRefTable, o pdf.Object, sinceVersion pdf.Version) error {
-
+func validateColorSpaceResourceDict(xRefTable *model.XRefTable, o types.Object, sinceVersion model.Version) error {
 	// see 8.6 Color Spaces
 
 	// Version check
 	err := xRefTable.ValidateVersion("ColorSpaceResourceDict", sinceVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("ColorSpace resource dict: version: %w", err)
 	}
 
 	d, err := xRefTable.DereferenceDict(o)
-	if err != nil || d == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("ColorSpace resource dict: dereference dict: %w", err)
+	}
+	if d == nil {
+		if xRefTable.ValidationMode == model.ValidationRelaxed {
+			return nil
+		}
+		return errors.New("ColorSpace resource dict: missing dict")
 	}
 
 	// Iterate over colorspace resource dictionary
-	for _, o := range d {
-
+	for name, o := range d {
 		// Process colorspace
 		err = validateColorSpace(xRefTable, o, IncludePatternCS)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", objectContext(fmt.Sprintf("ColorSpace resource %s", name), o), err)
 		}
 
 	}

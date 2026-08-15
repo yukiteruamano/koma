@@ -1,21 +1,32 @@
 package where
 
 import (
+	"sync"
+
+	"github.com/samber/lo"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
-	"github.com/samber/lo"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
 
 const EnvConfigPath = "KOMA_CONFIG_PATH"
 
+// created memoizes already-created directories so hot paths do not repeat
+// MkdirAll syscalls for the same path.
+var created sync.Map
+
 // mkdir creates a directory and all parent directories if they don't exist
 // will return the path of the directory
 func mkdir(path string) string {
+	if _, ok := created.Load(path); ok {
+		return path
+	}
+
 	lo.Must0(filesystem.Api().MkdirAll(path, os.ModePerm))
+	created.Store(path, struct{}{})
 	return path
 }
 

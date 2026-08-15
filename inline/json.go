@@ -2,10 +2,12 @@ package inline
 
 import (
 	"encoding/json"
+	"io"
+
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/source"
-	"github.com/spf13/viper"
 )
 
 type Manga struct {
@@ -22,7 +24,7 @@ type Output struct {
 	Result []*Manga `json:"result" jsonschema:"description=Result of the search."`
 }
 
-func asJson(manga []*source.Manga, options *Options) (marshalled []byte, err error) {
+func asJson(manga []*source.Manga, options *Options, w io.Writer) error {
 	var m = make([]*Manga, len(manga))
 	for i, manga := range manga {
 		al := manga.Anilist.OrElse(nil)
@@ -37,7 +39,8 @@ func asJson(manga []*source.Manga, options *Options) (marshalled []byte, err err
 		}
 	}
 
-	return json.Marshal(&Output{
+	// Stream the output instead of buffering the whole document in memory.
+	return json.NewEncoder(w).Encode(&Output{
 		Result: m,
 		Query:  options.Query,
 	})

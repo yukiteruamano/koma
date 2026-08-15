@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/query"
-	"github.com/samber/lo"
 	"net/http"
 	"strconv"
 )
@@ -59,7 +59,7 @@ func GetByID(id int) (*Manga, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := network.Client.Do(req)
+	resp, err := network.Do(req)
 
 	if err != nil {
 		log.Error(err)
@@ -133,7 +133,7 @@ func SearchByName(name string) ([]*Manga, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := network.Client.Do(req)
+	resp, err := network.Do(req)
 
 	if err != nil {
 		log.Error(err)
@@ -158,10 +158,13 @@ func SearchByName(name string) ([]*Manga, error) {
 	mangas := response.Data.Page.Media
 	log.Infof("Got response from Anilist, found %d results", len(mangas))
 	ids := make([]int, len(mangas))
+	kvs := make(map[int]*Manga, len(mangas))
 	for i, manga := range mangas {
 		ids[i] = manga.ID
-		_ = idCacher.Set(manga.ID, manga)
+		kvs[manga.ID] = manga
 	}
+	// Batch the id writes into a single cache rewrite instead of one per result.
+	_ = idCacher.SetMany(kvs)
 	_ = searchCacher.Set(name, ids)
 	return mangas, nil
 }

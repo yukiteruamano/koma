@@ -19,8 +19,8 @@ package filter
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"io"
-	"io/ioutil"
 )
 
 type asciiHexDecode struct {
@@ -31,10 +31,13 @@ const eodHexDecode = '>'
 
 // Encode implements encoding for an ASCIIHexDecode filter.
 func (f asciiHexDecode) Encode(r io.Reader) (io.Reader, error) {
-
-	bb, err := ioutil.ReadAll(r)
+	bb, err := getReaderBytes(r)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(bb) > maxInt/2 {
+		return nil, errors.New("ASCIIHex encode: length overflow")
 	}
 
 	dst := make([]byte, hex.EncodedLen(len(bb)))
@@ -48,8 +51,12 @@ func (f asciiHexDecode) Encode(r io.Reader) (io.Reader, error) {
 
 // Decode implements decoding for an ASCIIHexDecode filter.
 func (f asciiHexDecode) Decode(r io.Reader) (io.Reader, error) {
+	return f.DecodeLength(r, -1)
+}
 
-	bb, err := ioutil.ReadAll(r)
+// DecodeLength implements decoding for an ASCIIHexDecode filter with a maximum output length.
+func (f asciiHexDecode) DecodeLength(r io.Reader, maxLen int64) (io.Reader, error) {
+	bb, err := getReaderBytes(r)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +64,7 @@ func (f asciiHexDecode) Decode(r io.Reader) (io.Reader, error) {
 	var p []byte
 
 	// Remove any white space and cut off on eod
-	for i := 0; i < len(bb); i++ {
+	for i := range bb {
 		if bb[i] == eodHexDecode {
 			break
 		}
@@ -71,10 +78,22 @@ func (f asciiHexDecode) Decode(r io.Reader) (io.Reader, error) {
 		p = append(p, '0')
 	}
 
-	dst := make([]byte, hex.DecodedLen(len(p)))
+	decodedLen := int64(hex.DecodedLen(len(p)))
+	if maxLen < 0 {
+		maxLen = decodedLen
+		if limit := f.decodeLimit(-1); limit >= 0 && maxLen > limit {
+			return nil, ErrDecodeLimitExceeded
+		}
+	} else if maxLen > decodedLen {
+		return nil, io.ErrUnexpectedEOF
+	}
 
-	_, err = hex.Decode(dst, p)
-	if err != nil {
+	if maxLen > int64(maxInt) || maxLen > maxInt64/2 {
+		return nil, errors.New("ASCIIHex decode: length overflow")
+	}
+	dst := make([]byte, maxLen)
+
+	if _, err := hex.Decode(dst, p[:maxLen*2]); err != nil {
 		return nil, err
 	}
 

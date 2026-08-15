@@ -226,6 +226,21 @@ Use env variable `KOMA_CONFIG_PATH` to set custom config path.
 | `koma config info`   | List all config fields with description for each |
 | `koma config write`  | Write current config to a file                   |
 
+### Performance tuning
+
+Download and network behavior can be tuned through the following config keys
+(all listed by `koma config info`):
+
+| Key                            | Default | Description                                                    |
+|--------------------------------|---------|----------------------------------------------------------------|
+| `downloader.concurrency`       | `4`     | Max pages downloaded in parallel per chapter (async only)      |
+| `network.timeout`              | `1m`    | HTTP client timeout                                            |
+| `network.max_conns_per_host`   | `8`     | Max concurrent connections to a single host                    |
+| `network.max_retries`          | `3`     | Retries for transient failures (timeouts, 429, 5xx)            |
+| `network.retry_base_delay`     | `500ms` | Base backoff delay between retries (doubles each attempt)      |
+
+Set them with `koma config set downloader.concurrency 8`.
+
 ## Custom scrapers
 
 TLDR; To browse and install a custom scraper

@@ -1,15 +1,18 @@
 package mangadex
 
 import (
+	"sync"
+
 	"github.com/metafates/gache"
+	"github.com/samber/mo"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/mo"
 	"path/filepath"
 	"time"
 )
 
 type cacher[T any] struct {
+	mu       sync.Mutex
 	internal *gache.Cache[map[string]T]
 }
 
@@ -26,6 +29,9 @@ func newCacher[T any](name string) *cacher[T] {
 }
 
 func (c *cacher[T]) Get(key string) mo.Option[T] {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cached, expired, err := c.internal.Get()
 	if err != nil || expired || cached == nil {
 		return mo.None[T]()
@@ -39,6 +45,9 @@ func (c *cacher[T]) Get(key string) mo.Option[T] {
 }
 
 func (c *cacher[T]) Set(key string, value T) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cached, expired, err := c.internal.Get()
 	if err != nil {
 		return err

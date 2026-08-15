@@ -17,8 +17,12 @@
 package primitives
 
 import (
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
 type Regions struct {
@@ -30,7 +34,20 @@ type Regions struct {
 	Divider     *Divider `json:"div"`
 	Left, Right *Content // 2 horizontal regions or
 	Top, Bottom *Content // 2 vertical regions
-	mediaBox    *pdfcpu.Rectangle
+	mediaBox    *types.Rectangle
+}
+
+func parseRegionOrientation(s string) (types.Orientation, error) {
+	var o types.Orientation
+	switch strings.ToLower(s) {
+	case "h", "hor", "horizontal":
+		o = types.Horizontal
+	case "v", "vert", "vertical":
+		o = types.Vertical
+	default:
+		return o, fmt.Errorf("unknown region orientation (hor, vert): %s", s)
+	}
+	return o, nil
 }
 
 func (r *Regions) validate() error {
@@ -39,16 +56,16 @@ func (r *Regions) validate() error {
 
 	// trim json string necessary?
 	if r.Orientation == "" {
-		return errors.Errorf("pdfcpu: region is missing orientation")
+		return fmt.Errorf("region is missing orientation")
 	}
-	o, err := pdfcpu.ParseRegionOrientation(r.Orientation)
+	o, err := parseRegionOrientation(r.Orientation)
 	if err != nil {
 		return err
 	}
-	r.horizontal = o == pdfcpu.Horizontal
+	r.horizontal = o == types.Horizontal
 
 	if r.Divider == nil {
-		return errors.New("pdfcpu: region is missing divider")
+		return errors.New("region is missing divider")
 	}
 	r.Divider.pdf = pdf
 	if err := r.Divider.validate(); err != nil {
@@ -57,7 +74,7 @@ func (r *Regions) validate() error {
 
 	if r.horizontal {
 		if r.Left == nil {
-			return errors.Errorf("pdfcpu: regions %s is missing Left", r.Name)
+			return fmt.Errorf("regions %s is missing Left", r.Name)
 		}
 		r.Left.page = r.page
 		r.Left.parent = r.parent
@@ -65,7 +82,7 @@ func (r *Regions) validate() error {
 			return err
 		}
 		if r.Right == nil {
-			return errors.Errorf("pdfcpu: regions %s is missing Right", r.Name)
+			return fmt.Errorf("regions %s is missing Right", r.Name)
 		}
 		r.Right.page = r.page
 		r.Right.parent = r.parent
@@ -73,7 +90,7 @@ func (r *Regions) validate() error {
 	}
 
 	if r.Top == nil {
-		return errors.Errorf("pdfcpu: regions %s is missing Top", r.Name)
+		return fmt.Errorf("regions %s is missing Top", r.Name)
 	}
 	r.Top.page = r.page
 	r.Top.parent = r.parent
@@ -81,7 +98,7 @@ func (r *Regions) validate() error {
 		return err
 	}
 	if r.Bottom == nil {
-		return errors.Errorf("pdfcpu: regions %s is missing Bottom", r.Name)
+		return fmt.Errorf("regions %s is missing Bottom", r.Name)
 	}
 	r.Bottom.page = r.page
 	r.Bottom.parent = r.parent
@@ -92,20 +109,20 @@ func (r *Regions) validate() error {
 	return nil
 }
 
-func (r *Regions) render(p *pdfcpu.Page, pageNr int, fonts pdfcpu.FontMap, images pdfcpu.ImageMap, fields *pdfcpu.Array) error {
+func (r *Regions) render(p *model.Page, pageNr int, fonts model.FontMap, images model.ImageMap) error {
 
 	if r.horizontal {
 
 		// Calc divider.
-		dx := r.mediaBox.Width() * r.Divider.At
-		r.Divider.p.X, r.Divider.p.Y = pdfcpu.NormalizeCoord(dx, 0, r.mediaBox, r.page.pdf.origin, true)
-		r.Divider.q.X, r.Divider.q.Y = pdfcpu.NormalizeCoord(dx, r.mediaBox.Height(), r.mediaBox, r.page.pdf.origin, true)
+		dx := r.mediaBox.Width() * r.Divider.Pos
+		r.Divider.p.X, r.Divider.p.Y = types.NormalizeCoord(dx, 0, r.mediaBox, r.page.pdf.origin, true)
+		r.Divider.q.X, r.Divider.q.Y = types.NormalizeCoord(dx, r.mediaBox.Height(), r.mediaBox, r.page.pdf.origin, true)
 
 		// Render left region.
 		r.Left.mediaBox = r.mediaBox.CroppedCopy(0)
 		r.Left.mediaBox.UR.X = r.Divider.p.X - float64(r.Divider.Width)/2
 		r.Left.page = r.page
-		if err := r.Left.render(p, pageNr, fonts, images, fields); err != nil {
+		if err := r.Left.render(p, pageNr, fonts, images); err != nil {
 			return err
 		}
 
@@ -113,22 +130,22 @@ func (r *Regions) render(p *pdfcpu.Page, pageNr int, fonts pdfcpu.FontMap, image
 		r.Right.mediaBox = r.mediaBox.CroppedCopy(0)
 		r.Right.mediaBox.LL.X = r.Divider.p.X + float64(r.Divider.Width)/2
 		r.Right.page = r.page
-		if err := r.Right.render(p, pageNr, fonts, images, fields); err != nil {
+		if err := r.Right.render(p, pageNr, fonts, images); err != nil {
 			return err
 		}
 
 	} else {
 
 		// Calc divider.
-		dy := r.mediaBox.Height() * r.Divider.At
-		r.Divider.p.X, r.Divider.p.Y = pdfcpu.NormalizeCoord(0, dy, r.mediaBox, r.page.pdf.origin, true)
-		r.Divider.q.X, r.Divider.q.Y = pdfcpu.NormalizeCoord(r.mediaBox.Width(), dy, r.mediaBox, r.page.pdf.origin, true)
+		dy := r.mediaBox.Height() * r.Divider.Pos
+		r.Divider.p.X, r.Divider.p.Y = types.NormalizeCoord(0, dy, r.mediaBox, r.page.pdf.origin, true)
+		r.Divider.q.X, r.Divider.q.Y = types.NormalizeCoord(r.mediaBox.Width(), dy, r.mediaBox, r.page.pdf.origin, true)
 
 		// Render top region.
 		r.Top.mediaBox = r.mediaBox.CroppedCopy(0)
 		r.Top.mediaBox.LL.Y = r.Divider.p.Y + float64(r.Divider.Width)/2
 		r.Top.page = r.page
-		if err := r.Top.render(p, pageNr, fonts, images, fields); err != nil {
+		if err := r.Top.render(p, pageNr, fonts, images); err != nil {
 			return err
 		}
 
@@ -136,7 +153,7 @@ func (r *Regions) render(p *pdfcpu.Page, pageNr int, fonts pdfcpu.FontMap, image
 		r.Bottom.mediaBox = r.mediaBox.CroppedCopy(0)
 		r.Bottom.mediaBox.UR.Y = r.Divider.p.Y - float64(r.Divider.Width)/2
 		r.Bottom.page = r.page
-		if err := r.Bottom.render(p, pageNr, fonts, images, fields); err != nil {
+		if err := r.Bottom.render(p, pageNr, fonts, images); err != nil {
 			return err
 		}
 

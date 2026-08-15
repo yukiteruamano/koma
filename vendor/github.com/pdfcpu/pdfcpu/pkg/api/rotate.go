@@ -17,100 +17,108 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
-	"time"
 
-	"github.com/pdfcpu/pdfcpu/pkg/log"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/fault"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
+func validateRotation(rotation int) error {
+	if rotation%90 != 0 {
+		return fmt.Errorf("rotation must be a multiple of 90: %w", ErrInvalidRotation)
+	}
+	return nil
+}
+
 // Rotate rotates selected pages of rs clockwise by rotation degrees and writes the result to w.
-func Rotate(rs io.ReadSeeker, w io.Writer, rotation int, selectedPages []string, conf *pdfcpu.Configuration) error {
+func Rotate(rs io.ReadSeeker, w io.Writer, rotation int, selectedPages []string, conf *model.Configuration) (err error) {
+	defer fault.Catch(&err)
+
+	if rs == nil {
+		return ErrMissingPDFReadSeeker
+	}
+
+	if w == nil {
+		return ErrMissingPDFWriter
+	}
+	if err := validateRotation(rotation); err != nil {
+		return err
+	}
+
 	if conf == nil {
-		conf = pdfcpu.NewDefaultConfiguration()
+		conf = model.NewDefaultConfiguration()
 	}
-	conf.Cmd = pdfcpu.ROTATE
+	conf.Cmd = model.ROTATE
 
-	fromStart := time.Now()
-	ctx, durRead, durVal, durOpt, err := readValidateAndOptimize(rs, conf, fromStart)
+	ctx, err := ReadValidateAndOptimize(rs, conf)
 	if err != nil {
-		return err
+		return fmt.Errorf("rotate: %w", err)
 	}
 
-	if err := ctx.EnsurePageCount(); err != nil {
-		return err
-	}
-
-	from := time.Now()
-	pages, err := PagesForPageSelection(ctx.PageCount, selectedPages, true)
+	pages, err := PagesForPageSelection(ctx.PageCount, selectedPages, true, true)
 	if err != nil {
-		return err
+		return fmt.Errorf("rotate: parse page selection: %w", err)
 	}
 
 	if err = pdfcpu.RotatePages(ctx, pages, rotation); err != nil {
-		return err
+		return fmt.Errorf("rotate: apply rotation: %w", err)
 	}
 
-	log.Stats.Printf("XRefTable:\n%s\n", ctx)
-	durStamp := time.Since(from).Seconds()
-	fromWrite := time.Now()
-
-	if conf.ValidationMode != pdfcpu.ValidationNone {
-		if err = ValidateContext(ctx); err != nil {
-			return err
-		}
+	if err = Write(ctx, w, conf); err != nil {
+		return fmt.Errorf("rotate: write output: %w", err)
 	}
-
-	if err = WriteContext(ctx, w); err != nil {
-		return err
-	}
-
-	durWrite := durStamp + time.Since(fromWrite).Seconds()
-	durTotal := time.Since(fromStart).Seconds()
-	logOperationStats(ctx, "rotate, write", durRead, durVal, durOpt, durWrite, durTotal)
-
 	return nil
 }
 
 // RotateFile rotates selected pages of inFile clockwise by rotation degrees and writes the result to outFile.
-func RotateFile(inFile, outFile string, rotation int, selectedPages []string, conf *pdfcpu.Configuration) (err error) {
+func RotateFile(inFile, outFile string, rotation int, selectedPages []string, conf *model.Configuration) (err error) {
 	var f1, f2 *os.File
+	ok := false
+
+	if inFile == "" {
+		return ErrMissingPDFInput
+	}
+	if err := validateRotation(rotation); err != nil {
+		return err
+	}
 
 	if f1, err = os.Open(inFile); err != nil {
-		return err
+		return fmt.Errorf("rotate: open input %s: %w", inFile, err)
 	}
 
-	tmpFile := inFile + ".tmp"
+	tmpFile := ""
 	if outFile != "" && inFile != outFile {
 		tmpFile = outFile
-		log.CLI.Printf("writing %s...\n", outFile)
+		logWritingTo(outFile)
 	} else {
-		log.CLI.Printf("writing %s...\n", inFile)
+		logWritingTo(inFile)
 	}
-	if f2, err = os.Create(tmpFile); err != nil {
+	staged, err := openStagedOutput(f1, inFile, tmpFile, "rotate")
+	if err != nil {
+		return errors.Join(
+			fmt.Errorf("rotate: create output: %w", err),
+			closeFile(f1, "rotate: close input"),
+		)
+	}
+	f2 = staged.output.file
+
+	defer func() {
+		if !ok {
+			err = staged.cleanup(err)
+			return
+		}
+		err = staged.commit()
+	}()
+
+	if err = Rotate(f1, f2, rotation, selectedPages, conf); err != nil {
 		return err
 	}
 
-	defer func() {
-		if err != nil {
-			f2.Close()
-			f1.Close()
-			os.Remove(tmpFile)
-			return
-		}
-		if err = f2.Close(); err != nil {
-			return
-		}
-		if err = f1.Close(); err != nil {
-			return
-		}
-		if outFile == "" || inFile == outFile {
-			if err = os.Rename(tmpFile, inFile); err != nil {
-				return
-			}
-		}
-	}()
+	ok = true
 
-	return Rotate(f1, f2, rotation, selectedPages, conf)
+	return nil
 }

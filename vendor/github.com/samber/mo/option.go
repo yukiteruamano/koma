@@ -2,6 +2,7 @@ package mo
 
 import (
 	"bytes"
+	"database/sql"
 	"database/sql/driver"
 	"encoding/gob"
 	"encoding/json"
@@ -10,7 +11,11 @@ import (
 	"reflect"
 )
 
-var optionNoSuchElement = fmt.Errorf("no such element")
+var errOptionNoSuchElement = fmt.Errorf("no such element")
+
+type zeroer interface {
+	IsZero() bool
+}
 
 // Some builds an Option when value is present.
 // Play: https://go.dev/play/p/iqz2n9n0tDM
@@ -50,6 +55,16 @@ func EmptyableToOption[T any](value T) Option[T] {
 	return Some(value)
 }
 
+// PointerToOption builds a Some Option when value is not nil, or None.
+// Play: https://go.dev/play/p/yPVMj4DUb-I
+func PointerToOption[T any](value *T) Option[T] {
+	if value == nil {
+		return None[T]()
+	}
+
+	return Some(*value)
+}
+
 // Option is a container for an optional value of type T. If value exists, Option is
 // of type Some. If the value is absent, Option is of type None.
 type Option[T any] struct {
@@ -57,16 +72,28 @@ type Option[T any] struct {
 	value     T
 }
 
-// IsPresent returns true when value is absent.
+// IsPresent returns false when value is absent.
 // Play: https://go.dev/play/p/nDqIaiihyCA
 func (o Option[T]) IsPresent() bool {
 	return o.isPresent
 }
 
-// IsAbsent returns true when value is present.
+// IsSome is an alias to IsPresent.
+// Play: https://go.dev/play/p/DyvGRy7fP9m
+func (o Option[T]) IsSome() bool {
+	return o.IsPresent()
+}
+
+// IsAbsent returns false when value is present.
 // Play: https://go.dev/play/p/23e2zqyVOQm
 func (o Option[T]) IsAbsent() bool {
 	return !o.isPresent
+}
+
+// IsNone is an alias to IsAbsent.
+// Play: https://go.dev/play/p/EdqxKhborIP
+func (o Option[T]) IsNone() bool {
+	return o.IsAbsent()
 }
 
 // Size returns 1 when value is present or 0 instead.
@@ -93,7 +120,7 @@ func (o Option[T]) Get() (T, bool) {
 // Play: https://go.dev/play/p/RVBckjdi5WR
 func (o Option[T]) MustGet() T {
 	if !o.isPresent {
-		panic(optionNoSuchElement)
+		panic(errOptionNoSuchElement)
 	}
 
 	return o.value
@@ -115,7 +142,7 @@ func (o Option[T]) OrEmpty() T {
 	return o.value
 }
 
-// ForEach executes the given side-effecting function of value is present.
+// ForEach executes the given side-effecting function if value is present.
 func (o Option[T]) ForEach(onValue func(value T)) {
 	if o.isPresent {
 		onValue(o.value)
@@ -162,19 +189,47 @@ func (o Option[T]) FlatMap(mapper func(value T) Option[T]) Option[T] {
 	return None[T]()
 }
 
+// MapValue executes the mapper function if value is present or returns None if absent.
+func (o Option[T]) MapValue(mapper func(value T) T) Option[T] {
+	if o.isPresent {
+		return Some(mapper(o.value))
+	}
+
+	return None[T]()
+}
+
+// ToPointer returns value if present or a nil pointer.
+// Play: https://go.dev/play/p/KJc2Pv3KNPW
+func (o Option[T]) ToPointer() *T {
+	if !o.isPresent {
+		return nil
+	}
+
+	return &o.value
+}
+
 // MarshalJSON encodes Option into json.
+// Go 1.20+ relies on the IsZero method when the `omitempty` tag is used
+// unless a custom MarshalJSON method is defined.  Then the IsZero method is ignored.
+// current best workaround is to instead use `omitzero` tag with Go 1.24+
 func (o Option[T]) MarshalJSON() ([]byte, error) {
 	if o.isPresent {
 		return json.Marshal(o.value)
 	}
 
-	// if anybody find a way to support `omitempty` param, please contribute!
 	return json.Marshal(nil)
 }
 
 // UnmarshalJSON decodes Option from json.
 func (o *Option[T]) UnmarshalJSON(b []byte) error {
-	if bytes.Equal(b, []byte("null")) {
+	o.value = empty[T]() // reset the value if not set later.
+
+	// If user manually set the field to be `null`, then it either means the option is absent or present with a zero value.
+	if bytes.Equal([]byte("null"), bytes.ToLower(b)) {
+		// // If the type is a pointer, then it means the option is present with a zero value.
+		// o.isPresent = reflect.TypeOf(o.value).Kind() == reflect.Ptr
+		// return nil
+
 		o.isPresent = false
 		return nil
 	}
@@ -188,6 +243,20 @@ func (o *Option[T]) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// IsZero assists `omitzero` tag introduced in Go 1.24
+func (o Option[T]) IsZero() bool {
+	if !o.isPresent {
+		return true
+	}
+
+	var v any = o.value
+	if v, ok := v.(zeroer); ok {
+		return v.IsZero()
+	}
+
+	return reflect.ValueOf(o.value).IsZero()
+}
+
 // MarshalText implements the encoding.TextMarshaler interface.
 func (o Option[T]) MarshalText() ([]byte, error) {
 	return json.Marshal(o)
@@ -198,7 +267,7 @@ func (o *Option[T]) UnmarshalText(data []byte) error {
 	return json.Unmarshal(data, o)
 }
 
-// BinaryMarshaler is the interface implemented by an object that can marshal itself into a binary form.
+// MarshalBinary is the interface implemented by an object that can marshal itself into a binary form.
 func (o Option[T]) MarshalBinary() ([]byte, error) {
 	if !o.isPresent {
 		return []byte{0}, nil
@@ -214,7 +283,7 @@ func (o Option[T]) MarshalBinary() ([]byte, error) {
 	return append([]byte{1}, buf.Bytes()...), nil
 }
 
-// BinaryUnmarshaler is the interface implemented by an object that can unmarshal a binary representation of itself.
+// UnmarshalBinary is the interface implemented by an object that can unmarshal a binary representation of itself.
 func (o *Option[T]) UnmarshalBinary(data []byte) error {
 	if len(data) == 0 {
 		return errors.New("Option[T].UnmarshalBinary: no data")
@@ -247,11 +316,24 @@ func (o *Option[T]) GobDecode(data []byte) error {
 	return o.UnmarshalBinary(data)
 }
 
-// Scan implements the SQL driver.Scanner interface.
+// Scan implements the SQL sql.Scanner interface.
 func (o *Option[T]) Scan(src any) error {
 	if src == nil {
 		o.isPresent = false
 		o.value = empty[T]()
+		return nil
+	}
+
+	// it is only possible to assert interfaces, so convert first
+	// https://go.googlesource.com/proposal/+/refs/heads/master/design/43651-type-parameters.md#why-not-permit-type-assertions-on-values-whose-type-is-a-type-parameter
+	var t T
+	if tScanner, ok := interface{}(&t).(sql.Scanner); ok {
+		if err := tScanner.Scan(src); err != nil {
+			return fmt.Errorf("failed to scan: %w", err)
+		}
+
+		o.isPresent = true
+		o.value = t
 		return nil
 	}
 
@@ -263,7 +345,7 @@ func (o *Option[T]) Scan(src any) error {
 		}
 	}
 
-	return fmt.Errorf("failed to scan Option[T]")
+	return o.scanConvertValue(src)
 }
 
 // Value implements the driver Valuer interface.
@@ -272,5 +354,46 @@ func (o Option[T]) Value() (driver.Value, error) {
 		return nil, nil
 	}
 
-	return o.value, nil
+	return driver.DefaultParameterConverter.ConvertValue(o.value)
+}
+
+// Equal compares two Option[T] instances for equality
+func (o Option[T]) Equal(other Option[T]) bool {
+	if !o.isPresent && !other.isPresent {
+		return true
+	}
+
+	if o.isPresent != other.isPresent {
+		return false
+	}
+
+	return reflect.DeepEqual(o.value, other.value)
+}
+
+// leftValue returns an error if the Option is None, otherwise nil
+//
+//nolint:unused
+func (o Option[T]) leftValue() error {
+	if !o.isPresent {
+		return errOptionNoSuchElement
+	}
+	return nil
+}
+
+// rightValue returns the value if the Option is Some, otherwise the zero value of T
+//
+//nolint:unused
+func (o Option[T]) rightValue() T {
+	if !o.isPresent {
+		var zero T
+		return zero
+	}
+	return o.value
+}
+
+// hasLeftValue returns true if the Option represents a None state
+//
+//nolint:unused
+func (o Option[T]) hasLeftValue() bool {
+	return !o.isPresent
 }

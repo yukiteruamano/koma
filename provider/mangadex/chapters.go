@@ -1,18 +1,25 @@
 package mangadex
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
+
 	"github.com/darylhjd/mangodex"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/source"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"net/url"
 	"strconv"
 	"time"
 )
 
 func (m *Mangadex) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
+	if cached, ok := m.cache.chapters.Get(manga.ID).Get(); ok {
+		manga.Chapters = cached
+		return cached, nil
+	}
+
 	params := url.Values{}
 	params.Set("limit", strconv.Itoa(500))
 	ratings := []string{mangodex.Safe, mangodex.Suggestive}
@@ -126,11 +133,12 @@ func (m *Mangadex) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 		chapters = append(chapters, chapter)
 	}
 
-	slices.SortFunc(chapters, func(a, b *source.Chapter) bool {
-		return a.Index < b.Index
+	slices.SortFunc(chapters, func(a, b *source.Chapter) int {
+		return cmp.Compare(a.Index, b.Index)
 	})
 
 	manga.Chapters = chapters
+	_ = m.cache.chapters.Set(manga.ID, chapters)
 	return chapters, nil
 }
 

@@ -1,17 +1,22 @@
 package query
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/lithammer/fuzzysearch/fuzzy"
-	"github.com/yukiteruamano/koma/key"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
+	"github.com/yukiteruamano/koma/key"
 )
 
 var (
 	suggestionCache = make(map[string][]*queryRecord)
 )
+
+// maxSuggestionCache bounds the in-memory suggestion cache for long TUI sessions.
+const maxSuggestionCache = 100
 
 func SuggestMany(query string) []string {
 	if !viper.GetBool(key.SearchShowQuerySuggestions) {
@@ -19,6 +24,11 @@ func SuggestMany(query string) []string {
 	}
 
 	query = sanitize(query)
+
+	// keep the per-session cache bounded
+	if len(suggestionCache) > maxSuggestionCache {
+		suggestionCache = make(map[string][]*queryRecord)
+	}
 
 	var records []*queryRecord
 
@@ -36,8 +46,8 @@ func SuggestMany(query string) []string {
 			}
 		}
 
-		slices.SortFunc(records, func(a, b *queryRecord) bool {
-			return a.Rank > b.Rank
+		slices.SortFunc(records, func(a, b *queryRecord) int {
+			return cmp.Compare(b.Rank, a.Rank)
 		})
 
 		suggestionCache[query] = records

@@ -17,44 +17,52 @@
 package api
 
 import (
+	"fmt"
 	"io"
-	"os"
-	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/fault"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-// Info returns information about rs.
-func Info(rs io.ReadSeeker, selectedPages []string, conf *pdfcpu.Configuration) ([]string, error) {
-	if conf == nil {
-		conf = pdfcpu.NewDefaultConfiguration()
-	} else {
-		// Validation loads infodict.
-		conf.ValidationMode = pdfcpu.ValidationRelaxed
-	}
-	ctx, _, _, err := readAndValidate(rs, conf, time.Now())
-	if err != nil {
-		return nil, err
-	}
-	if err := ctx.EnsurePageCount(); err != nil {
-		return nil, err
-	}
-	pages, err := PagesForPageSelection(ctx.PageCount, selectedPages, false)
-	if err != nil {
-		return nil, err
-	}
-	if err := ctx.DetectWatermarks(); err != nil {
-		return nil, err
-	}
-	return ctx.InfoDigest(pages)
-}
+// PDFInfo returns information about rs.
+func PDFInfo(rs io.ReadSeeker, fileName string, selectedPages []string, fonts bool, conf *model.Configuration) (info *pdfcpu.PDFInfo, err error) {
+	defer fault.Catch(&err)
 
-// InfoFile returns information about inFile.
-func InfoFile(inFile string, selectedPages []string, conf *pdfcpu.Configuration) ([]string, error) {
-	f, err := os.Open(inFile)
-	if err != nil {
-		return nil, err
+	if rs == nil {
+		return nil, ErrMissingPDFReadSeeker
 	}
-	defer f.Close()
-	return Info(f, selectedPages, conf)
+
+	if conf == nil {
+		conf = model.NewDefaultConfiguration()
+	} else {
+		conf.ValidationMode = model.ValidationRelaxed
+	}
+	conf.Cmd = model.LISTINFO
+
+	ctx, err := ReadAndValidate(rs, conf)
+	if err != nil {
+		return nil, fmt.Errorf("info: prepare PDF context: %w", err)
+	}
+
+	if fonts {
+		if err = OptimizeContext(ctx); err != nil {
+			return nil, fmt.Errorf("info: optimize context: %w", err)
+		}
+	}
+
+	pages, err := PagesForPageSelection(ctx.PageCount, selectedPages, false, true)
+	if err != nil {
+		return nil, fmt.Errorf("info: parse page selection: %w", err)
+	}
+
+	if err := pdfcpu.DetectWatermarks(ctx); err != nil {
+		return nil, fmt.Errorf("info: detect watermarks: %w", err)
+	}
+
+	info, err = pdfcpu.Info(ctx, fileName, pages, fonts)
+	if err != nil {
+		return nil, fmt.Errorf("info: collect document info: %w", err)
+	}
+	return info, nil
 }

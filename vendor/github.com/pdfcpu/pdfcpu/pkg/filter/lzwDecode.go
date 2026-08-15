@@ -18,11 +18,11 @@ package filter
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
-	"github.com/hhrutter/lzw"
+	"github.com/pdfcpu/pdfcpu/internal/filter/lzw"
 	"github.com/pdfcpu/pdfcpu/pkg/log"
-	"github.com/pkg/errors"
 )
 
 type lzwDecode struct {
@@ -31,8 +31,9 @@ type lzwDecode struct {
 
 // Encode implements encoding for an LZWDecode filter.
 func (f lzwDecode) Encode(r io.Reader) (io.Reader, error) {
-
-	log.Trace.Println("EncodeLZW begin")
+	if log.TraceEnabled() {
+		log.Trace.Println("EncodeLZW begin")
+	}
 
 	var b bytes.Buffer
 
@@ -48,19 +49,28 @@ func (f lzwDecode) Encode(r io.Reader) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Trace.Printf("EncodeLZW end: %d bytes written\n", written)
+
+	if log.TraceEnabled() {
+		log.Trace.Printf("EncodeLZW end: %d bytes written\n", written)
+	}
 
 	return &b, nil
 }
 
 // Decode implements decoding for an LZWDecode filter.
 func (f lzwDecode) Decode(r io.Reader) (io.Reader, error) {
+	return f.DecodeLength(r, -1)
+}
 
-	log.Trace.Println("DecodeLZW begin")
+// DecodeLength implements decoding for an LZWDecode filter with a maximum output length.
+func (f lzwDecode) DecodeLength(r io.Reader, maxLen int64) (io.Reader, error) {
+	if log.TraceEnabled() {
+		log.Trace.Println("DecodeLZW begin")
+	}
 
 	p, found := f.parms["Predictor"]
 	if found && p > 1 {
-		return nil, errors.Errorf("DecodeLZW: unsupported predictor %d", p)
+		return nil, fmt.Errorf("LZW decode: unsupported predictor %d", p)
 	}
 
 	ec, ok := f.parms["EarlyChange"]
@@ -71,12 +81,14 @@ func (f lzwDecode) Decode(r io.Reader) (io.Reader, error) {
 	rc := lzw.NewReader(r, ec == 1)
 	defer rc.Close()
 
-	var b bytes.Buffer
-	written, err := io.Copy(&b, rc)
+	b, err := f.copyDecoded(rc, maxLen)
 	if err != nil {
 		return nil, err
 	}
-	log.Trace.Printf("DecodeLZW: decoded %d bytes.\n", written)
 
-	return &b, nil
+	if log.TraceEnabled() {
+		log.Trace.Printf("DecodeLZW: decoded %d bytes.\n", b.Len())
+	}
+
+	return b, nil
 }

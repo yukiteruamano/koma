@@ -1,6 +1,11 @@
 package mo
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/gob"
+	"errors"
+	"fmt"
+)
 
 const (
 	either5ArgId1 = iota
@@ -11,12 +16,12 @@ const (
 )
 
 var (
-	either5InvalidArgumentId = fmt.Errorf("either5 argument should be between 1 and 5")
-	either5MissingArg1       = fmt.Errorf("either5 doesn't contain expected argument 1")
-	either5MissingArg2       = fmt.Errorf("either5 doesn't contain expected argument 2")
-	either5MissingArg3       = fmt.Errorf("either5 doesn't contain expected argument 3")
-	either5MissingArg4       = fmt.Errorf("either5 doesn't contain expected argument 4")
-	either5MissingArg5       = fmt.Errorf("either5 doesn't contain expected argument 5")
+	errEither5InvalidArgumentId = fmt.Errorf("either5 argument should be between 1 and 5")
+	errEither5MissingArg1       = fmt.Errorf("either5 doesn't contain expected argument 1")
+	errEither5MissingArg2       = fmt.Errorf("either5 doesn't contain expected argument 2")
+	errEither5MissingArg3       = fmt.Errorf("either5 doesn't contain expected argument 3")
+	errEither5MissingArg4       = fmt.Errorf("either5 doesn't contain expected argument 4")
+	errEither5MissingArg5       = fmt.Errorf("either5 doesn't contain expected argument 5")
 )
 
 // NewEither5Arg1 builds the first argument of the Either5 struct.
@@ -139,7 +144,7 @@ func (e Either5[T1, T2, T3, T4, T5]) Arg5() (T5, bool) {
 // MustArg1 returns the first argument of a Either5 struct or panics.
 func (e Either5[T1, T2, T3, T4, T5]) MustArg1() T1 {
 	if !e.IsArg1() {
-		panic(either5MissingArg1)
+		panic(errEither5MissingArg1)
 	}
 	return e.arg1
 }
@@ -147,7 +152,7 @@ func (e Either5[T1, T2, T3, T4, T5]) MustArg1() T1 {
 // MustArg2 returns the second argument of a Either5 struct or panics.
 func (e Either5[T1, T2, T3, T4, T5]) MustArg2() T2 {
 	if !e.IsArg2() {
-		panic(either5MissingArg2)
+		panic(errEither5MissingArg2)
 	}
 	return e.arg2
 }
@@ -155,7 +160,7 @@ func (e Either5[T1, T2, T3, T4, T5]) MustArg2() T2 {
 // MustArg3 returns the third argument of a Either5 struct or panics.
 func (e Either5[T1, T2, T3, T4, T5]) MustArg3() T3 {
 	if !e.IsArg3() {
-		panic(either5MissingArg3)
+		panic(errEither5MissingArg3)
 	}
 	return e.arg3
 }
@@ -163,7 +168,7 @@ func (e Either5[T1, T2, T3, T4, T5]) MustArg3() T3 {
 // MustArg4 returns the fourth argument of a Either5 struct or panics.
 func (e Either5[T1, T2, T3, T4, T5]) MustArg4() T4 {
 	if !e.IsArg4() {
-		panic(either5MissingArg4)
+		panic(errEither5MissingArg4)
 	}
 	return e.arg4
 }
@@ -171,7 +176,7 @@ func (e Either5[T1, T2, T3, T4, T5]) MustArg4() T4 {
 // MustArg5 returns the fith argument of a Either5 struct or panics.
 func (e Either5[T1, T2, T3, T4, T5]) MustArg5() T5 {
 	if !e.IsArg5() {
-		panic(either5MissingArg5)
+		panic(errEither5MissingArg5)
 	}
 	return e.arg5
 }
@@ -253,7 +258,7 @@ func (e Either5[T1, T2, T3, T4, T5]) Arg4OrEmpty() T4 {
 	return empty[T4]()
 }
 
-// Arg5OrEmpty returns the fith argument of a Either5 struct or empty value.
+// Arg5OrEmpty returns the fifth argument of a Either5 struct or empty value.
 func (e Either5[T1, T2, T3, T4, T5]) Arg5OrEmpty() T5 {
 	if e.IsArg5() {
 		return e.arg5
@@ -298,7 +303,7 @@ func (e Either5[T1, T2, T3, T4, T5]) Match(
 		return onArg5(e.arg5)
 	}
 
-	panic(either5InvalidArgumentId)
+	panic(errEither5InvalidArgumentId)
 }
 
 // MapArg1 executes the given function, if Either5 use the first argument, and returns result.
@@ -344,4 +349,107 @@ func (e Either5[T1, T2, T3, T4, T5]) MapArg5(mapper func(T5) Either5[T1, T2, T3,
 	}
 
 	return e
+}
+
+// MarshalBinary encodes Either5 into binary form.
+func (e Either5[T1, T2, T3, T4, T5]) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	switch e.argId {
+	case either5ArgId1:
+		if err := enc.Encode(e.arg1); err != nil {
+			return []byte{}, err
+		}
+	case either5ArgId2:
+		if err := enc.Encode(e.arg2); err != nil {
+			return []byte{}, err
+		}
+	case either5ArgId3:
+		if err := enc.Encode(e.arg3); err != nil {
+			return []byte{}, err
+		}
+	case either5ArgId4:
+		if err := enc.Encode(e.arg4); err != nil {
+			return []byte{}, err
+		}
+	case either5ArgId5:
+		if err := enc.Encode(e.arg5); err != nil {
+			return []byte{}, err
+		}
+	default:
+		return []byte{}, errEither5InvalidArgumentId
+	}
+	return append([]byte{byte(e.argId)}, buf.Bytes()...), nil
+}
+
+// UnmarshalBinary decodes Either5 from binary form.
+func (e *Either5[T1, T2, T3, T4, T5]) UnmarshalBinary(data []byte) error {
+	if len(data) == 0 {
+		return errors.New("Either5[T1, T2, T3, T4, T5].UnmarshalBinary: no data")
+	}
+
+	buf := bytes.NewBuffer(data[1:])
+	dec := gob.NewDecoder(buf)
+
+	switch int8(data[0]) {
+	case either5ArgId1:
+		if err := dec.Decode(&e.arg1); err != nil {
+			return err
+		}
+		e.argId = either5ArgId1
+		e.arg2 = empty[T2]()
+		e.arg3 = empty[T3]()
+		e.arg4 = empty[T4]()
+		e.arg5 = empty[T5]()
+	case either5ArgId2:
+		if err := dec.Decode(&e.arg2); err != nil {
+			return err
+		}
+		e.argId = either5ArgId2
+		e.arg1 = empty[T1]()
+		e.arg3 = empty[T3]()
+		e.arg4 = empty[T4]()
+		e.arg5 = empty[T5]()
+	case either5ArgId3:
+		if err := dec.Decode(&e.arg3); err != nil {
+			return err
+		}
+		e.argId = either5ArgId3
+		e.arg1 = empty[T1]()
+		e.arg2 = empty[T2]()
+		e.arg4 = empty[T4]()
+		e.arg5 = empty[T5]()
+	case either5ArgId4:
+		if err := dec.Decode(&e.arg4); err != nil {
+			return err
+		}
+		e.argId = either5ArgId4
+		e.arg1 = empty[T1]()
+		e.arg2 = empty[T2]()
+		e.arg3 = empty[T3]()
+		e.arg5 = empty[T5]()
+	case either5ArgId5:
+		if err := dec.Decode(&e.arg5); err != nil {
+			return err
+		}
+		e.argId = either5ArgId5
+		e.arg1 = empty[T1]()
+		e.arg2 = empty[T2]()
+		e.arg3 = empty[T3]()
+		e.arg4 = empty[T4]()
+	default:
+		return errEither5InvalidArgumentId
+	}
+	return nil
+}
+
+// GobEncode implements the gob.GobEncoder interface.
+func (e Either5[T1, T2, T3, T4, T5]) GobEncode() ([]byte, error) {
+	return e.MarshalBinary()
+}
+
+// GobDecode implements the gob.GobDecoder interface.
+func (e *Either5[T1, T2, T3, T4, T5]) GobDecode(data []byte) error {
+	return e.UnmarshalBinary(data)
 }

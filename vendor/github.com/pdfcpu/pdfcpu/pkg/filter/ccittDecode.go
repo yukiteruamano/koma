@@ -17,11 +17,10 @@ limitations under the License.
 package filter
 
 import (
-	"bytes"
+	"errors"
 	"io"
 
 	"github.com/pdfcpu/pdfcpu/pkg/log"
-	"github.com/pkg/errors"
 	"golang.org/x/image/ccitt"
 )
 
@@ -37,8 +36,14 @@ func (f ccittDecode) Encode(r io.Reader) (io.Reader, error) {
 
 // Decode implements decoding for a CCITTDecode filter.
 func (f ccittDecode) Decode(r io.Reader) (io.Reader, error) {
+	return f.DecodeLength(r, -1)
+}
 
-	log.Trace.Println("DecodeCCITT begin")
+// DecodeLength implements decoding for a CCITTFaxDecode filter with a maximum output length.
+func (f ccittDecode) DecodeLength(r io.Reader, maxLen int64) (io.Reader, error) {
+	if log.TraceEnabled() {
+		log.Trace.Println("DecodeCCITT begin")
+	}
 
 	var ok bool
 
@@ -48,7 +53,7 @@ func (f ccittDecode) Decode(r io.Reader) (io.Reader, error) {
 	k := 0
 	k, ok = f.parms["K"]
 	if ok && k > 0 {
-		return nil, errors.New("pdfcpu: filter CCITTFax k > 0 currently unsupported")
+		return nil, errors.New("CCITT decode: k > 0 currently unsupported")
 	}
 
 	cols := 1728
@@ -59,7 +64,7 @@ func (f ccittDecode) Decode(r io.Reader) (io.Reader, error) {
 
 	rows, ok := f.parms["Rows"]
 	if !ok {
-		return nil, errors.New("pdfcpu: ccitt: missing DecodeParam \"Rows\"")
+		return nil, errors.New("CCITT decode: missing DecodeParam \"Rows\"")
 	}
 
 	blackIs1 := false
@@ -82,12 +87,14 @@ func (f ccittDecode) Decode(r io.Reader) (io.Reader, error) {
 	}
 	rd := ccitt.NewReader(r, ccitt.MSB, mode, cols, rows, opts)
 
-	var b bytes.Buffer
-	written, err := io.Copy(&b, rd)
+	b, err := f.copyDecoded(rd, maxLen)
 	if err != nil {
 		return nil, err
 	}
-	log.Trace.Printf("DecodeCCITT: decoded %d bytes.\n", written)
 
-	return &b, nil
+	if log.TraceEnabled() {
+		log.Trace.Printf("DecodeCCITT: decoded %d bytes.\n", b.Len())
+	}
+
+	return b, nil
 }

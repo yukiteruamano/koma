@@ -3,7 +3,9 @@ package downloader
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/converter"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/history"
@@ -11,7 +13,6 @@ import (
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/style"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
@@ -47,7 +48,15 @@ func Download(chapter *source.Chapter, progress func(string)) (string, error) {
 	}
 	log.Info("found " + fmt.Sprintf("%d", len(pages)) + " pages")
 
-	err = chapter.DownloadPages(false, progress)
+	format := viper.GetString(key.FormatsUse)
+
+	// Plain format streams every page straight to its final directory,
+	// keeping memory bounded; other formats buffer pages in memory.
+	if format == constant.FormatPlain {
+		err = chapter.DownloadPagesTo(path, false, progress)
+	} else {
+		err = chapter.DownloadPages(false, progress)
+	}
 	if err != nil {
 		log.Error(err)
 		return "", err
@@ -87,24 +96,26 @@ func Download(chapter *source.Chapter, progress func(string)) (string, error) {
 		}
 	}
 
-	log.Info("getting " + viper.GetString(key.FormatsUse) + " converter")
-	progress(fmt.Sprintf(
-		"Converting %d pages to %s %s",
-		len(pages),
-		style.Fg(color.Yellow)(viper.GetString(key.FormatsUse)),
-		style.Faint(chapter.SizeHuman())),
-	)
-	conv, err := converter.Get(viper.GetString(key.FormatsUse))
-	if err != nil {
-		log.Error(err)
-		return "", err
-	}
+	if format != constant.FormatPlain {
+		log.Info("getting " + format + " converter")
+		progress(fmt.Sprintf(
+			"Converting %d pages to %s %s",
+			len(pages),
+			style.Fg(color.Yellow)(format),
+			style.Faint(chapter.SizeHuman())),
+		)
+		conv, err := converter.Get(format)
+		if err != nil {
+			log.Error(err)
+			return "", err
+		}
 
-	log.Info("converting " + viper.GetString(key.FormatsUse))
-	path, err = conv.Save(chapter)
-	if err != nil {
-		log.Error(err)
-		return "", err
+		log.Info("converting " + format)
+		path, err = conv.Save(chapter)
+		if err != nil {
+			log.Error(err)
+			return "", err
+		}
 	}
 
 	if viper.GetBool(key.HistorySaveOnDownload) {

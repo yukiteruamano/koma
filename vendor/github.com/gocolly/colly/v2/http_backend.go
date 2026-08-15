@@ -19,7 +19,6 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -40,14 +39,15 @@ type httpBackend struct {
 	lock       *sync.RWMutex
 }
 
-type checkHeadersFunc func(statusCode int, header http.Header) bool
+type checkResponseHeadersFunc func(req *http.Request, statusCode int, header http.Header) bool
+type checkRequestHeadersFunc func(req *http.Request) bool
 
 // LimitRule provides connection restrictions for domains.
 // Both DomainRegexp and DomainGlob can be used to specify
 // the included domains patterns, but at least one is required.
 // There can be two kind of limitations:
-//  - Parallelism: Set limit for the number of concurrent requests to matching domains
-//  - Delay: Wait specified amount of time between requests (parallelism is 1 in this case)
+//   - Parallelism: Set limit for the number of concurrent requests to matching domains
+//   - Delay: Wait specified amount of time between requests (parallelism is 1 in this case)
 type LimitRule struct {
 	// DomainRegexp is a regular expression to match against domains
 	DomainRegexp string
@@ -66,11 +66,7 @@ type LimitRule struct {
 
 // Init initializes the private members of LimitRule
 func (r *LimitRule) Init() error {
-	waitChanSize := 1
-	if r.Parallelism > 1 {
-		waitChanSize = r.Parallelism
-	}
-	r.waitChan = make(chan bool, waitChanSize)
+	r.waitChan = make(chan bool, max(r.Parallelism, 1))
 	hasPattern := false
 	if r.DomainRegexp != "" {
 		c, err := regexp.Compile(r.DomainRegexp)
@@ -129,23 +125,31 @@ func (h *httpBackend) GetMatchingRule(domain string) *LimitRule {
 	return nil
 }
 
-func (h *httpBackend) Cache(request *http.Request, bodySize int, checkHeadersFunc checkHeadersFunc, cacheDir string) (*Response, error) {
-	if cacheDir == "" || request.Method != "GET" {
-		return h.Do(request, bodySize, checkHeadersFunc)
+func (h *httpBackend) Cache(request *http.Request, bodySize int, checkRequestHeadersFunc checkRequestHeadersFunc, checkResponseHeadersFunc checkResponseHeadersFunc, cacheDir string, cacheExpiration time.Duration) (*Response, error) {
+	if cacheDir == "" || request.Method != "GET" || request.Header.Get("Cache-Control") == "no-cache" {
+		return h.Do(request, bodySize, checkRequestHeadersFunc, checkResponseHeadersFunc)
 	}
 	sum := sha1.Sum([]byte(request.URL.String()))
 	hash := hex.EncodeToString(sum[:])
 	dir := path.Join(cacheDir, hash[:2])
 	filename := path.Join(dir, hash)
+
+	if fileInfo, err := os.Stat(filename); err == nil && cacheExpiration > 0 {
+		if time.Since(fileInfo.ModTime()) > cacheExpiration {
+			_ = os.Remove(filename)
+		}
+	}
+
 	if file, err := os.Open(filename); err == nil {
 		resp := new(Response)
 		err := gob.NewDecoder(file).Decode(resp)
 		file.Close()
+		checkResponseHeadersFunc(request, resp.StatusCode, *resp.Headers)
 		if resp.StatusCode < 500 {
 			return resp, err
 		}
 	}
-	resp, err := h.Do(request, bodySize, checkHeadersFunc)
+	resp, err := h.Do(request, bodySize, checkRequestHeadersFunc, checkResponseHeadersFunc)
 	if err != nil || resp.StatusCode >= 500 {
 		return resp, err
 	}
@@ -166,7 +170,7 @@ func (h *httpBackend) Cache(request *http.Request, bodySize int, checkHeadersFun
 	return resp, os.Rename(filename+"~", filename)
 }
 
-func (h *httpBackend) Do(request *http.Request, bodySize int, checkHeadersFunc checkHeadersFunc) (*Response, error) {
+func (h *httpBackend) Do(request *http.Request, bodySize int, checkRequestHeadersFunc checkRequestHeadersFunc, checkResponseHeadersFunc checkResponseHeadersFunc) (*Response, error) {
 	r := h.GetMatchingRule(request.URL.Host)
 	if r != nil {
 		r.waitChan <- true
@@ -179,16 +183,20 @@ func (h *httpBackend) Do(request *http.Request, bodySize int, checkHeadersFunc c
 			<-r.waitChan
 		}(r)
 	}
-
+	if !checkRequestHeadersFunc(request) {
+		return nil, ErrAbortedBeforeRequest
+	}
 	res, err := h.Client.Do(request)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
+
+	finalRequest := request
 	if res.Request != nil {
-		*request = *res.Request
+		finalRequest = res.Request
 	}
-	if !checkHeadersFunc(res.StatusCode, res.Header) {
+	if !checkResponseHeadersFunc(finalRequest, res.StatusCode, res.Header) {
 		// closing res.Body (see defer above) without reading it aborts
 		// the download
 		return nil, ErrAbortedAfterHeaders
@@ -199,14 +207,14 @@ func (h *httpBackend) Do(request *http.Request, bodySize int, checkHeadersFunc c
 		bodyReader = io.LimitReader(bodyReader, int64(bodySize))
 	}
 	contentEncoding := strings.ToLower(res.Header.Get("Content-Encoding"))
-	if !res.Uncompressed && (strings.Contains(contentEncoding, "gzip") || (contentEncoding == "" && strings.Contains(strings.ToLower(res.Header.Get("Content-Type")), "gzip")) || strings.HasSuffix(strings.ToLower(request.URL.Path), ".xml.gz")) {
+	if !res.Uncompressed && (strings.Contains(contentEncoding, "gzip") || (contentEncoding == "" && strings.Contains(strings.ToLower(res.Header.Get("Content-Type")), "gzip")) || strings.HasSuffix(strings.ToLower(finalRequest.URL.Path), ".xml.gz")) {
 		bodyReader, err = gzip.NewReader(bodyReader)
 		if err != nil {
 			return nil, err
 		}
 		defer bodyReader.(*gzip.Reader).Close()
 	}
-	body, err := ioutil.ReadAll(bodyReader)
+	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		return nil, err
 	}

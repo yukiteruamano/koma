@@ -1,6 +1,11 @@
 package mo
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/gob"
+	"errors"
+	"fmt"
+)
 
 const (
 	either3ArgId1 = iota
@@ -9,10 +14,10 @@ const (
 )
 
 var (
-	either3InvalidArgumentId = fmt.Errorf("either3 argument should be between 1 and 3")
-	either3MissingArg1       = fmt.Errorf("either3 doesn't contain expected argument 1")
-	either3MissingArg2       = fmt.Errorf("either3 doesn't contain expected argument 2")
-	either3MissingArg3       = fmt.Errorf("either3 doesn't contain expected argument 3")
+	errEither3InvalidArgumentId = fmt.Errorf("either3 argument should be between 1 and 3")
+	errEither3MissingArg1       = fmt.Errorf("either3 doesn't contain expected argument 1")
+	errEither3MissingArg2       = fmt.Errorf("either3 doesn't contain expected argument 2")
+	errEither3MissingArg3       = fmt.Errorf("either3 doesn't contain expected argument 3")
 )
 
 // NewEither3Arg1 builds the first argument of the Either3 struct.
@@ -39,7 +44,7 @@ func NewEither3Arg3[T1 any, T2 any, T3 any](value T3) Either3[T1, T2, T3] {
 	}
 }
 
-// Either3 respresents a value of 3 possible types.
+// Either3 represents a value of 3 possible types.
 // An instance of Either3 is an instance of either T1, T2 or T3.
 type Either3[T1 any, T2 any, T3 any] struct {
 	argId int8
@@ -91,7 +96,7 @@ func (e Either3[T1, T2, T3]) Arg3() (T3, bool) {
 // MustArg1 returns the first argument of a Either3 struct or panics.
 func (e Either3[T1, T2, T3]) MustArg1() T1 {
 	if !e.IsArg1() {
-		panic(either3MissingArg1)
+		panic(errEither3MissingArg1)
 	}
 	return e.arg1
 }
@@ -99,7 +104,7 @@ func (e Either3[T1, T2, T3]) MustArg1() T1 {
 // MustArg2 returns the second argument of a Either3 struct or panics.
 func (e Either3[T1, T2, T3]) MustArg2() T2 {
 	if !e.IsArg2() {
-		panic(either3MissingArg2)
+		panic(errEither3MissingArg2)
 	}
 	return e.arg2
 }
@@ -107,7 +112,7 @@ func (e Either3[T1, T2, T3]) MustArg2() T2 {
 // MustArg3 returns the third argument of a Either3 struct or panics.
 func (e Either3[T1, T2, T3]) MustArg3() T3 {
 	if !e.IsArg3() {
-		panic(either3MissingArg3)
+		panic(errEither3MissingArg3)
 	}
 	return e.arg3
 }
@@ -192,7 +197,7 @@ func (e Either3[T1, T2, T3]) Match(
 		return onArg3(e.arg3)
 	}
 
-	panic(either3InvalidArgumentId)
+	panic(errEither3InvalidArgumentId)
 }
 
 // MapArg1 executes the given function, if Either3 use the first argument, and returns result.
@@ -220,4 +225,75 @@ func (e Either3[T1, T2, T3]) MapArg3(mapper func(T3) Either3[T1, T2, T3]) Either
 	}
 
 	return e
+}
+
+// MarshalBinary encodes Either3 into binary form.
+func (e Either3[T1, T2, T3]) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	switch e.argId {
+	case either3ArgId1:
+		if err := enc.Encode(e.arg1); err != nil {
+			return []byte{}, err
+		}
+	case either3ArgId2:
+		if err := enc.Encode(e.arg2); err != nil {
+			return []byte{}, err
+		}
+	case either3ArgId3:
+		if err := enc.Encode(e.arg3); err != nil {
+			return []byte{}, err
+		}
+	default:
+		return []byte{}, errEither3InvalidArgumentId
+	}
+	return append([]byte{byte(e.argId)}, buf.Bytes()...), nil
+}
+
+// UnmarshalBinary decodes Either3 from binary form.
+func (e *Either3[T1, T2, T3]) UnmarshalBinary(data []byte) error {
+	if len(data) == 0 {
+		return errors.New("Either3[T1, T2, T3].UnmarshalBinary: no data")
+	}
+
+	buf := bytes.NewBuffer(data[1:])
+	dec := gob.NewDecoder(buf)
+
+	switch int8(data[0]) {
+	case either3ArgId1:
+		if err := dec.Decode(&e.arg1); err != nil {
+			return err
+		}
+		e.argId = either3ArgId1
+		e.arg2 = empty[T2]()
+		e.arg3 = empty[T3]()
+	case either3ArgId2:
+		if err := dec.Decode(&e.arg2); err != nil {
+			return err
+		}
+		e.argId = either3ArgId2
+		e.arg1 = empty[T1]()
+		e.arg3 = empty[T3]()
+	case either3ArgId3:
+		if err := dec.Decode(&e.arg3); err != nil {
+			return err
+		}
+		e.argId = either3ArgId3
+		e.arg1 = empty[T1]()
+		e.arg2 = empty[T2]()
+	default:
+		return errEither3InvalidArgumentId
+	}
+	return nil
+}
+
+// GobEncode implements the gob.GobEncoder interface.
+func (e Either3[T1, T2, T3]) GobEncode() ([]byte, error) {
+	return e.MarshalBinary()
+}
+
+// GobDecode implements the gob.GobDecoder interface.
+func (e *Either3[T1, T2, T3]) GobDecode(data []byte) error {
+	return e.UnmarshalBinary(data)
 }
