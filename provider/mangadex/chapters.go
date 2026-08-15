@@ -17,6 +17,12 @@ import (
 
 func (m *Mangadex) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 	if cached, ok := m.cache.chapters.Get(manga.ID).Get(); ok {
+		// Chapters are persisted without the Manga back-reference (json:"-"),
+		// so rehydrate it after loading from the cache.
+		for _, chapter := range cached {
+			chapter.Manga = manga
+		}
+
 		manga.Chapters = cached
 		return cached, nil
 	}

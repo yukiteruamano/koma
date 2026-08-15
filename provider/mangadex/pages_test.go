@@ -63,3 +63,37 @@ func TestCacherSetGet(t *testing.T) {
 		t.Error("expected a cache miss")
 	}
 }
+
+func TestChaptersOfCacheHitRehydratesManga(t *testing.T) {
+	filesystem.SetMemMapFs()
+
+	manga := &source.Manga{Name: "M", ID: "manga-1"}
+	cached := []*source.Chapter{
+		{Name: "c1", Index: 1, Manga: manga},
+		{Name: "c2", Index: 2, Manga: manga},
+	}
+
+	// a first instance persists the cache to disk (Chapter.Manga is json:"-",
+	// so it is not serialized)
+	first := New()
+	if err := first.cache.chapters.Set(manga.ID, cached); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
+
+	// a fresh instance reloads from disk, losing the Manga back-reference;
+	// ChaptersOf must rehydrate it so the TUI does not panic on render
+	second := New()
+	chapters, err := second.ChaptersOf(manga)
+	if err != nil {
+		t.Fatalf("ChaptersOf failed: %v", err)
+	}
+
+	if len(chapters) != 2 {
+		t.Fatalf("got %d chapters, want 2", len(chapters))
+	}
+	for i, chapter := range chapters {
+		if chapter.Manga != manga {
+			t.Errorf("chapter %d Manga was not rehydrated from the cache", i)
+		}
+	}
+}

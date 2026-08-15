@@ -104,6 +104,13 @@ func TestChapter_IsDownloaded(t *testing.T) {
 			t.Error("expected the cached flag to still report downloaded")
 		}
 	})
+
+	t.Run("nil manga does not panic", func(t *testing.T) {
+		chapter := &Chapter{Name: "orphan", Index: 1}
+		if chapter.IsDownloaded() {
+			t.Error("a chapter without a manga must not be reported as downloaded")
+		}
+	})
 }
 
 func TestChapter_PathVolumeDir(t *testing.T) {

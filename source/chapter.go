@@ -191,6 +191,11 @@ func (c *Chapter) IsDownloaded() bool {
 		return c.isDownloaded.MustGet()
 	}
 
+	if c.Manga == nil {
+		// without a manga we cannot determine a path; treat as not downloaded
+		return false
+	}
+
 	path, _ := c.path(c.Manga.peekPath(), false)
 	exists, _ := filesystem.Api().Exists(path)
 	c.isDownloaded = mo.Some(exists)
