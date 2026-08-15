@@ -106,6 +106,7 @@ func Ignore(f func() error) {
 
 // Max returns the maximum value of the given items.
 func Max[T constraints.Ordered](items ...T) (max T) {
+	max = items[0]
 	for _, item := range items {
 		if item > max {
 			max = item
