@@ -2,13 +2,13 @@ package tui
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/anilist"
-	"github.com/metafates/mangal/history"
-	"github.com/metafates/mangal/icon"
-	"github.com/metafates/mangal/installer"
-	"github.com/metafates/mangal/provider"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/style"
+	"github.com/yukiteruamano/koma/anilist"
+	"github.com/yukiteruamano/koma/history"
+	"github.com/yukiteruamano/koma/icon"
+	"github.com/yukiteruamano/koma/installer"
+	"github.com/yukiteruamano/koma/provider"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/style"
 	"strings"
 )
 

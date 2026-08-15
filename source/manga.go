@@ -2,12 +2,12 @@ package source
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/anilist"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/log"
-	"github.com/metafates/mangal/util"
-	"github.com/metafates/mangal/where"
+	"github.com/yukiteruamano/koma/anilist"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/util"
+	"github.com/yukiteruamano/koma/where"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/spf13/viper"

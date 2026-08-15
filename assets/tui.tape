@@ -1,4 +1,4 @@
-Require "mangal"
+Require "koma"
 Output assets/tui.gif
 
 Set FontSize 21
@@ -6,12 +6,12 @@ Set Width 1200
 Set Height 1000
 
 Hide
-Type "mangal inline anilist set --name "Chainsaw Man" --id 138829" Enter
-Type "rm -rf $(mangal where --downloads)/Chainsaw_Man" Enter
+Type "koma inline anilist set --name "Chainsaw Man" --id 138829" Enter
+Type "rm -rf $(koma where --downloads)/Chainsaw_Man" Enter
 Type "clear" Enter
 Show
 
-Type@200ms "mangal" Sleep 200 ms Enter
+Type@200ms "koma" Sleep 200 ms Enter
 Sleep 3s
 
 # move cursor up and down

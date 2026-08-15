@@ -2,19 +2,19 @@ package inline
 
 import (
 	"encoding/json"
-	"github.com/metafates/mangal/anilist"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/anilist"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/source"
 	"github.com/spf13/viper"
 )
 
 type Manga struct {
 	// Source that the manga belongs to.
 	Source string `json:"source" jsonschema:"description=Source that the manga belongs to."`
-	// Mangal variant of the manga
-	Mangal *source.Manga `json:"mangal" jsonschema:"description=Mangal variant of the manga"`
-	// Anilist is the closest anilist match to mangal manga
-	Anilist *anilist.Manga `json:"anilist" jsonschema:"description=Anilist is the closest anilist match to mangal manga"`
+	// Koma variant of the manga
+	Koma *source.Manga `json:"koma" jsonschema:"description=Koma variant of the manga"`
+	// Anilist is the closest anilist match to koma manga
+	Anilist *anilist.Manga `json:"anilist" jsonschema:"description=Anilist is the closest anilist match to koma manga"`
 }
 
 type Output struct {
@@ -31,7 +31,7 @@ func asJson(manga []*source.Manga, options *Options) (marshalled []byte, err err
 		}
 
 		m[i] = &Manga{
-			Mangal:  manga,
+			Koma:    manga,
 			Anilist: al,
 			Source:  manga.Source.Name(),
 		}

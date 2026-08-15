@@ -2,7 +2,7 @@ package mangadex
 
 import (
 	"github.com/darylhjd/mangodex"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/source"
 )
 
 const (

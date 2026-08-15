@@ -3,8 +3,8 @@ package tui
 import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/style"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/style"
 )
 
 type statefulKeymap struct {

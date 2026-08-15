@@ -2,10 +2,10 @@ package zip
 
 import (
 	"archive/zip"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/log"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/util"
 	"io"
 	"time"
 )

@@ -1,6 +1,5 @@
 # Custom
 changelog-temp.md
-mangal
 koma
 koma_test
 
@@ -41,14 +40,6 @@ go.work
 #########
 
 .idea/
-
-###########
-# Docker #
-###########
-
-# Local docker compose runtime data
-downloads/
-config/
 
 ##########
 # macOS #

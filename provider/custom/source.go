@@ -2,7 +2,7 @@ package custom
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/source"
 	lua "github.com/yuin/gopher-lua"
 )
 

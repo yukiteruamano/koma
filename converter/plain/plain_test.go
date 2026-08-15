@@ -2,9 +2,9 @@ package plain
 
 import (
 	"bytes"
-	"github.com/metafates/mangal/config"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/config"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/source"
 	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"io/fs"

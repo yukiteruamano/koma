@@ -3,11 +3,11 @@ package tui
 import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/icon"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/style"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/icon"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/style"
+	"github.com/yukiteruamano/koma/util"
 	"github.com/muesli/reflow/wrap"
 	"github.com/spf13/viper"
 	"math/rand"
@@ -247,7 +247,7 @@ func (b *statefulBubble) renderLines(addHelp bool, lines []string) string {
 func randomPlot() string {
 	plots := []string{
 		"The universe is a dangerous place. There are many things that can go wrong. This is one of them:",
-		"Fighting an endless army of errors and bugs Mangal died a hero. Their last words were:",
+		"Fighting an endless army of errors and bugs Koma died a hero. Their last words were:",
 		"I used to download stuff without any errors, then I took an arrow to the knee. By arrow I mean this:",
 	}
 

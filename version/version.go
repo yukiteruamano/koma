@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/metafates/gache"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/util"
-	"github.com/metafates/mangal/where"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/util"
+	"github.com/yukiteruamano/koma/where"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -18,7 +18,7 @@ var versionCacher = gache.New[string](&gache.Options{
 	FileSystem: &filesystem.GacheFs{},
 })
 
-// Latest returns the latest version of mangal.
+// Latest returns the latest version of koma.
 // It will fetch the latest version from the GitHub API.
 func Latest() (version string, err error) {
 	ver, expired, err := versionCacher.Get()
@@ -30,7 +30,7 @@ func Latest() (version string, err error) {
 		return ver, nil
 	}
 
-	resp, err := http.Get("https://api.github.com/repos/JaneWoo0068/koma/releases/latest")
+	resp, err := http.Get("https://api.github.com/repos/yukiteruamano/koma/releases/latest")
 	if err != nil {
 		return
 	}

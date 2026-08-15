@@ -1,7 +1,7 @@
 package mangapill
 
 import (
-	"github.com/metafates/mangal/provider/generic"
+	"github.com/yukiteruamano/koma/provider/generic"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )

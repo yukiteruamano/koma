@@ -2,10 +2,10 @@ package source
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"testing"

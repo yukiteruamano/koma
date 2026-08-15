@@ -1,4 +1,4 @@
-module github.com/metafates/mangal
+module github.com/yukiteruamano/koma
 
 go 1.23.0
 

@@ -2,15 +2,15 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/converter"
-	"github.com/metafates/mangal/history"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/log"
-	"github.com/metafates/mangal/open"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/style"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/converter"
+	"github.com/yukiteruamano/koma/history"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/open"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/style"
 	"github.com/spf13/viper"
 )
 

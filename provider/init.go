@@ -1,11 +1,11 @@
 package provider
 
 import (
-	"github.com/metafates/mangal/provider/generic"
-	"github.com/metafates/mangal/provider/mangadex"
-	"github.com/metafates/mangal/provider/mangapill"
-	"github.com/metafates/mangal/provider/weebcentral"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/provider/generic"
+	"github.com/yukiteruamano/koma/provider/mangadex"
+	"github.com/yukiteruamano/koma/provider/mangapill"
+	"github.com/yukiteruamano/koma/provider/weebcentral"
+	"github.com/yukiteruamano/koma/source"
 )
 
 const CustomProviderExtension = ".lua"

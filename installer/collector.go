@@ -1,8 +1,8 @@
 package installer
 
 import (
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/util"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"path/filepath"
@@ -11,7 +11,7 @@ import (
 var collector *githubFilesCollector
 
 // Scrapers gets available scrapers from GitHub repo.
-// See https://github.com/metafates/mangal-scrapers
+// See https://github.com/yukiteruamano/koma-scrapers
 func Scrapers() ([]*Scraper, error) {
 	if collector == nil {
 		setupCollector()

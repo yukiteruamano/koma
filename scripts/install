@@ -32,7 +32,7 @@ install_completions() {
         info "Installing zsh completions"
         TARGET="/usr/share/zsh/vendor-completions"
         sudo mkdir -p "$TARGET"
-        sudo cp "$COMPLETIONS/mangal.zsh" "$TARGET/_mangal"
+        sudo cp "$COMPLETIONS/koma.zsh" "$TARGET/_koma"
     fi
 
     if has fish;
@@ -40,7 +40,7 @@ install_completions() {
         info "Installing fish completions"
         TARGET="/usr/share/fish/completions"
         sudo mkdir -p "$TARGET"
-        sudo cp "$COMPLETIONS/mangal.fish" "$TARGET/mangal.fish"
+        sudo cp "$COMPLETIONS/koma.fish" "$TARGET/koma.fish"
     fi
 
     if has bash;
@@ -49,7 +49,7 @@ install_completions() {
         TARGET="/usr/share/bash-completion/completions"
 
         sudo mkdir -p $TARGET
-        sudo cp "$COMPLETIONS/mangal.bash" "$TARGET/mangal"
+        sudo cp "$COMPLETIONS/koma.bash" "$TARGET/koma"
     fi
 }
 
@@ -137,7 +137,7 @@ install_deb() {
 
 install_termux() {
     info "Installing for Termux"
-    pkg install mangal
+    pkg install koma
 }
 
 install_macos() {
@@ -148,12 +148,12 @@ install_macos() {
     fi
 
     info "Installing with Homebrew"
-    brew tap metafates/mangal
+    brew tap yukiteruamano/homebrew-koma
 
-    if has mangal; then
-        brew reinstall mangal
+    if has koma; then
+        brew reinstall koma
     else
-        brew install mangal
+        brew install koma
     fi
 }
 
@@ -250,10 +250,10 @@ install_binary() {
 }
 
 pre_install() {
-    has mangal && warn "mangal is installed already, reinstalling"
+    has koma && warn "koma is installed already, reinstalling"
 
-    RELEASES_URL="https://github.com/metafates/mangal/releases"
-    FILE_BASENAME="mangal"
+    RELEASES_URL="https://github.com/yukiteruamano/koma/releases"
+    FILE_BASENAME="koma"
 
     info "Fetching latest version"
     TAG="$(curl -sfL -o /dev/null -w "%{url_effective}" "$RELEASES_URL/latest" |
@@ -262,7 +262,7 @@ pre_install() {
         rev)"
 
     test -z "$TAG" && {
-        die "Unable to get mangal version."
+        die "Unable to get koma version."
     }
 
     OS=$(uname -s)
@@ -275,10 +275,10 @@ pre_install() {
 }
 
 post_install() {
-    if has mangal; then
-        printf "\n🎉 \033[1;32mMangal was installed successfully\033[0m\n\n"
+    if has koma; then
+        printf "\n🎉 \033[1;32mKoma was installed successfully\033[0m\n\n"
     else
-        die "Mangal was not installed or it's not in the PATH."
+        die "Koma was not installed or it's not in the PATH."
     fi
 }
 

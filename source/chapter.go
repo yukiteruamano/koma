@@ -3,11 +3,11 @@ package source
 import (
 	"fmt"
 	"github.com/dustin/go-humanize"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/style"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/style"
+	"github.com/yukiteruamano/koma/util"
 	"github.com/samber/mo"
 	"github.com/spf13/viper"
 	"os"
@@ -225,7 +225,7 @@ func (c *Chapter) ComicInfo() *ComicInfo {
 		Letterer:   strings.Join(c.Manga.Metadata.Staff.Lettering, ","),
 		Translator: strings.Join(c.Manga.Metadata.Staff.Translation, ","),
 		Tags:       strings.Join(c.Manga.Metadata.Tags, ","),
-		Notes:      "Downloaded with Mangal. https://github.com/metafates/mangal",
+		Notes:      "Downloaded with Koma. https://github.com/yukiteruamano/koma",
 		Manga:      "YesAndRightToLeft",
 	}
 }

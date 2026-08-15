@@ -13,7 +13,7 @@ COPY . .
 RUN go build \
     -mod=vendor \
     -trimpath \
-    -ldflags "-s -w -X 'github.com/metafates/mangal/constant.BuiltAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'github.com/metafates/mangal/constant.BuiltBy=docker' -X 'github.com/metafates/mangal/constant.Revision=$(git rev-parse --short HEAD 2>/dev/null || echo docker)'" \
+    -ldflags "-s -w -X 'github.com/yukiteruamano/koma/constant.BuiltAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'github.com/yukiteruamano/koma/constant.BuiltBy=docker' -X 'github.com/yukiteruamano/koma/constant.Revision=$(git rev-parse --short HEAD 2>/dev/null || echo docker)'" \
     -o /out/koma .
 
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS runtime-prep

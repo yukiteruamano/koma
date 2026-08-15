@@ -3,8 +3,8 @@ package mini
 import (
 	"bufio"
 	"fmt"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/style"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/style"
 	"os"
 	"strconv"
 	"strings"

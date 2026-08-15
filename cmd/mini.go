@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/metafates/mangal/converter"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/mini"
+	"github.com/yukiteruamano/koma/converter"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/mini"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,7 +21,7 @@ func init() {
 var miniCmd = &cobra.Command{
 	Use:   "mini",
 	Short: "Launch in the mini mode",
-	Long: `Launch mangal in the mini mode.
+	Long: `Launch koma in the mini mode.
 Will try to mimic ani-cli.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if _, err := converter.Get(viper.GetString(key.FormatsUse)); err != nil {

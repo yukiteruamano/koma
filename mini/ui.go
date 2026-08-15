@@ -2,8 +2,8 @@ package mini
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/style"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/style"
 	"github.com/samber/lo"
 	"os"
 	"strconv"

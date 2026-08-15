@@ -1,8 +1,8 @@
 package custom
 
 import (
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/source"
 	lua "github.com/yuin/gopher-lua"
 	"strconv"
 )

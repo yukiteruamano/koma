@@ -1,11 +1,11 @@
 package provider
 
 import (
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/provider/custom"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/util"
-	"github.com/metafates/mangal/where"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/provider/custom"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/util"
+	"github.com/yukiteruamano/koma/where"
 	"github.com/samber/lo"
 	"os"
 	"path/filepath"

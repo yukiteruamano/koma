@@ -3,8 +3,8 @@ package anilist
 import (
 	"fmt"
 	levenshtein "github.com/ka-weihe/fast-levenshtein"
-	"github.com/metafates/mangal/log"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/util"
 	"github.com/samber/lo"
 	"strings"
 )

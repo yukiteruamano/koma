@@ -34,8 +34,8 @@ download() {
 }
 
 pre_run() {
-    RELEASES_URL="https://github.com/metafates/mangal/releases"
-    FILE_BASENAME="mangal"
+    RELEASES_URL="https://github.com/yukiteruamano/koma/releases"
+    FILE_BASENAME="koma"
 
     info "Fetching latest version..."
     TAG="$(curl -sfL -o /dev/null -w "%{url_effective}" "$RELEASES_URL/latest" |
@@ -44,7 +44,7 @@ pre_run() {
         rev)"
 
     test -z "$TAG" && {
-        echo "Unable to get mangal version." >&2
+        echo "Unable to get koma version." >&2
         exit 1
     }
 
@@ -94,7 +94,7 @@ run() {
     (
         cd "$TMPDIR"
 
-        info "Downloading Mangal $VERSION..."
+        info "Downloading Koma $VERSION..."
         download "$TAR_FILE" "$RELEASES_URL/download/$TAG/$TAR_NAME"
 
         info "Downloading checksums..."
@@ -105,7 +105,7 @@ run() {
 
     tar -xf "$TAR_FILE" -C "$TMPDIR"
     T="$TMPDIR"
-    TMPDIR="" # unset TMPDIR so mangal won't crash because of occupied TMPDIR
+    TMPDIR="" # unset TMPDIR so koma won't crash because of occupied TMPDIR
     "${T}/${FILE_BASENAME}" "$@"
 }
 

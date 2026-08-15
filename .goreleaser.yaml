@@ -1,5 +1,7 @@
 version: 2
 
+project_name: koma
+
 before:
   hooks:
     - go mod tidy
@@ -18,9 +20,9 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -X 'github.com/metafates/mangal/constant.BuiltAt={{ .Date }}'
-      - -X 'github.com/metafates/mangal/constant.BuiltBy={{ .Env.USER }}'
-      - -X 'github.com/metafates/mangal/constant.Revision={{ .ShortCommit }}'
+      - -X 'github.com/yukiteruamano/koma/constant.BuiltAt={{ .Date }}'
+      - -X 'github.com/yukiteruamano/koma/constant.BuiltBy={{ .Env.USER }}'
+      - -X 'github.com/yukiteruamano/koma/constant.Revision={{ .ShortCommit }}'
       - -s
       - -w
 
@@ -82,45 +84,45 @@ dockers:
   - goos: linux
     goarch: amd64
     image_templates:
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-amd64"
+      - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-amd64"
     dockerfile: Dockerfile.release
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.source=https://github.com/JaneWoo0068/koma"
+      - "--label=org.opencontainers.image.source=https://github.com/yukiteruamano/koma"
       - "--label=org.opencontainers.image.created={{ .Date }}"
       - "--label=org.opencontainers.image.revision={{ .ShortCommit }}"
     skip_push: false
   - goos: linux
     goarch: arm64
     image_templates:
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-arm64"
+      - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-arm64"
     dockerfile: Dockerfile.release
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.source=https://github.com/JaneWoo0068/koma"
+      - "--label=org.opencontainers.image.source=https://github.com/yukiteruamano/koma"
       - "--label=org.opencontainers.image.created={{ .Date }}"
       - "--label=org.opencontainers.image.revision={{ .ShortCommit }}"
     skip_push: false
 
 docker_manifests:
-  - name_template: "ghcr.io/janewoo0068/koma:latest"
+  - name_template: "ghcr.io/yukiteruamano/koma:latest"
     image_templates:
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-amd64"
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-arm64"
+      - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-amd64"
+      - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-arm64"
     skip_push: false
-  - name_template: "ghcr.io/janewoo0068/koma:{{ .Tag }}"
+  - name_template: "ghcr.io/yukiteruamano/koma:{{ .Tag }}"
     image_templates:
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-amd64"
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-arm64"
+      - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-amd64"
+      - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-arm64"
     skip_push: false
 
 brews:
   - name: koma
 
     repository:
-      owner: JaneWoo0068
+      owner: yukiteruamano
       name: homebrew-koma
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
@@ -130,7 +132,7 @@ brews:
       email: bot@goreleaser.com
 
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    homepage: "https://github.com/JaneWoo0068/koma"
+    homepage: "https://github.com/yukiteruamano/koma"
     description: "The ultimate CLI manga downloader!"
     license: "MIT"
     skip_upload: false
@@ -146,7 +148,7 @@ brews:
 
 release:
   github:
-    owner: JaneWoo0068
+    owner: yukiteruamano
     name: koma
 
   name_template: "{{.ProjectName}} v{{.Version}}"
@@ -155,16 +157,16 @@ release:
 
   footer: |
 
-    **Full Changelog**: https://github.com/JaneWoo0068/koma/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/yukiteruamano/koma/compare/{{ .PreviousTag }}...{{ .Tag }}
 
     ---
 
-    Bugs? Suggestions? [Open an issue](https://github.com/JaneWoo0068/koma/issues/new/choose)
+    Bugs? Suggestions? [Open an issue](https://github.com/yukiteruamano/koma/issues/new/choose)
 
 nfpms:
   - file_name_template: "{{ .ConventionalFileName }}"
-    homepage: https://github.com/JaneWoo0068/koma
-    maintainer: JaneWoo0068
+    homepage: https://github.com/yukiteruamano/koma
+    maintainer: yukiteruamano
     description: |-
       The most advanced cli manga downloader in the entire universe!
 

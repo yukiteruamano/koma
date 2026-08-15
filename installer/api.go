@@ -3,7 +3,7 @@ package installer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/util"
 	"io"
 	"net/http"
 )

@@ -1,10 +1,10 @@
 package inline
 
 import (
-	"github.com/metafates/mangal/downloader"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/log"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/downloader"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/source"
 	"github.com/spf13/viper"
 	"os"
 )

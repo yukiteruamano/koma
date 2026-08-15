@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/metafates/mangal/anilist"
-	"github.com/metafates/mangal/log"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/anilist"
+	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/source"
 	"net/http"
 	"strconv"
 )

@@ -1,12 +1,12 @@
 # WAS NOT TESTED
 
-$release_url = "https://api.github.com/repos/metafates/mangal/releases"
+$release_url = "https://api.github.com/repos/yukiteruamano/koma/releases"
 $tag = (Invoke-WebRequest -Uri $release_url -UseBasicParsing | ConvertFrom-Json)[0].tag_name
 $version = $tag.substring(1)
-$loc = "$HOME\AppData\Local\mangal"
+$loc = "$HOME\AppData\Local\koma"
 $url = ""
 $arch = $env:PROCESSOR_ARCHITECTURE
-$releases_api_url = "https://github.com/metafates/mangal/releases/download/$tag/mangal_${version}_Windows"
+$releases_api_url = "https://github.com/yukiteruamano/koma/releases/download/$tag/koma_${version}_Windows"
 
 if ($arch -eq "AMD64")
 {
@@ -26,23 +26,23 @@ if (Test-Path -path $loc)
     Remove-Item $loc -Recurse -Force
 }
 
-Write-Host "Installing mangal version $tag" -ForegroundColor DarkCyan
+Write-Host "Installing koma version $tag" -ForegroundColor DarkCyan
 
-Invoke-WebRequest $url -outfile mangal.zip
+Invoke-WebRequest $url -outfile koma.zip
 
-Expand-Archive mangal.zip
+Expand-Archive koma.zip
 
 New-Item -ItemType "directory" -Path $loc
 
-Move-Item -Path mangal\mangal.exe -Destination $loc
+Move-Item -Path koma\koma.exe -Destination $loc
 
-Remove-Item mangal* -Recurse -Force
+Remove-Item koma* -Recurse -Force
 
 [System.Environment]::SetEnvironmentVariable("Path", $Env:Path + ";$loc", [System.EnvironmentVariableTarget]::User)
 
 if (Test-Path -path $loc)
 {
-    Write-Host "Mangal version $tag installed successfully" -ForegroundColor Green
+    Write-Host "Koma version $tag installed successfully" -ForegroundColor Green
 }
 else
 {

@@ -2,8 +2,8 @@ package query
 
 import (
 	"github.com/metafates/gache"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/where"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/where"
 )
 
 type queryRecord struct {

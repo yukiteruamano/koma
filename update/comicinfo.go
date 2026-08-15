@@ -3,9 +3,9 @@ package update
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/util"
 	"os"
 	"path/filepath"
 	"strings"

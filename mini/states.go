@@ -2,12 +2,12 @@ package mini
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/downloader"
-	"github.com/metafates/mangal/history"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/provider"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/downloader"
+	"github.com/yukiteruamano/koma/history"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/provider"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/util"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"

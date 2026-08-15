@@ -13,8 +13,8 @@ services:
       - KOMA_UID=1000
       - KOMA_GID=1000
     volumes:
-      - ./config:/config
-      - ./downloads:/downloads
+      - koma-config:/config
+      - koma-downloads:/downloads
     restart: unless-stopped
 
   koma-arm64:
@@ -31,6 +31,10 @@ services:
       - KOMA_UID=1000
       - KOMA_GID=1000
     volumes:
-      - ./config:/config
-      - ./downloads:/downloads
+      - koma-config:/config
+      - koma-downloads:/downloads
     restart: unless-stopped
+
+volumes:
+  koma-config:
+  koma-downloads:

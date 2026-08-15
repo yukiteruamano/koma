@@ -3,8 +3,8 @@ package weebcentral
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/source"
 	"net/http"
 	"net/url"
 	"path/filepath"

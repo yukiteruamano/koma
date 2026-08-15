@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/config"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/style"
-	"github.com/metafates/mangal/where"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/config"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/style"
+	"github.com/yukiteruamano/koma/where"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"

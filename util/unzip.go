@@ -3,7 +3,7 @@ package util
 import (
 	"archive/zip"
 	"fmt"
-	"github.com/metafates/mangal/filesystem"
+	"github.com/yukiteruamano/koma/filesystem"
 	"io"
 	"os"
 	"path/filepath"

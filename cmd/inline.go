@@ -5,15 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/invopop/jsonschema"
-	"github.com/metafates/mangal/anilist"
-	"github.com/metafates/mangal/converter"
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/inline"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/provider"
-	"github.com/metafates/mangal/query"
-	"github.com/metafates/mangal/source"
-	"github.com/metafates/mangal/update"
+	"github.com/yukiteruamano/koma/anilist"
+	"github.com/yukiteruamano/koma/converter"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/inline"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/provider"
+	"github.com/yukiteruamano/koma/query"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/update"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/spf13/cobra"
@@ -70,7 +70,7 @@ Chapter selectors:
 
 When using the json flag manga selector could be omitted. That way, it will select all mangas`,
 
-	Example: "https://github.com/metafates/mangal/wiki/Inline-mode",
+	Example: "https://github.com/yukiteruamano/koma/wiki/Inline-mode",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		json, _ := cmd.Flags().GetBool("json")
 

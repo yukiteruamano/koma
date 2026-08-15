@@ -43,7 +43,7 @@
 - __Caching__ - Koma will cache as much data as possible, so you don't have to wait for it to download the same data over and over again.
 - __4 Different export formats__ - PDF, CBZ, ZIP and plain images
 - __TUI ✨__ - You already know how to use it! (ﾉ>ω<)ﾉ :｡･::･ﾟ’★,｡･:･ﾟ’☆
-- __Scriptable__ - You can use Koma in your scripts, it's just a CLI app after all. [Examples](https://github.com/metafates/mangal/wiki/Inline-mode)
+- __Scriptable__ - You can use Koma in your scripts, it's just a CLI app after all. [Examples](https://github.com/yukiteruamano/koma)
 - __History__ - Resume your reading from where you left off!
 - __Fast?__ - YES.
 - __Monolith__ - ZERO runtime dependencies. Even Lua is built in. Easy to install and use.
@@ -55,13 +55,13 @@
 ### Homebrew (macOS / Linux)
 
 ```shell
-brew tap JaneWoo0068/homebrew-koma
+brew tap yukiteruamano/homebrew-koma
 brew install koma
 ```
 
 ### Pre-compiled binaries
 
-Download the latest release for your platform from the [Releases page](https://github.com/JaneWoo0068/koma/releases/latest).
+Download the latest release for your platform from the [Releases page](https://github.com/yukiteruamano/koma/releases/latest).
 
 **macOS / Linux:**
 ```shell
@@ -92,8 +92,8 @@ koma
 ### Docker
 
 ```shell
-docker pull ghcr.io/janewoo0068/koma:latest
-docker run --rm -ti -v $(pwd)/downloads:/downloads ghcr.io/janewoo0068/koma
+docker pull ghcr.io/yukiteruamano/koma:latest
+docker run --rm -ti -v $(pwd)/downloads:/downloads ghcr.io/yukiteruamano/koma
 ```
 
 > **Tip for macOS users:** [OrbStack](https://orbstack.dev/) is a lightweight and fast alternative to Docker Desktop. Install it, then use the same `docker` commands above.
@@ -104,7 +104,7 @@ Visit this link to install [Go](https://go.dev/doc/install).
 
 Clone the repo
 ```shell
-git clone --depth 1 https://github.com/JaneWoo0068/mangal.git koma
+git clone --depth 1 https://github.com/yukiteruamano/koma.git koma
 cd koma
 ```
 
@@ -119,10 +119,10 @@ make build # if you want to just build the binary
 
 ```shell
 # To build
-go build -ldflags "-X 'github.com/metafates/mangal/constant.BuiltAt=$(date -u)' -X 'github.com/metafates/mangal/constant.BuiltBy=$(whoami)' -X 'github.com/metafates/mangal/constant.Revision=$(git rev-parse --short HEAD)' -s -w"
+go build -ldflags "-X 'github.com/yukiteruamano/koma/constant.BuiltAt=$(date -u)' -X 'github.com/yukiteruamano/koma/constant.BuiltBy=$(whoami)' -X 'github.com/yukiteruamano/koma/constant.Revision=$(git rev-parse --short HEAD)' -s -w"
 
 # To install
-go install -ldflags "-X 'github.com/metafates/mangal/constant.BuiltAt=$(date -u)' -X 'github.com/metafates/mangal/constant.BuiltBy=$(whoami)' -X 'github.com/metafates/mangal/constant.Revision=$(git rev-parse --short HEAD)' -s -w"
+go install -ldflags "-X 'github.com/yukiteruamano/koma/constant.BuiltAt=$(date -u)' -X 'github.com/yukiteruamano/koma/constant.BuiltBy=$(whoami)' -X 'github.com/yukiteruamano/koma/constant.Revision=$(git rev-parse --short HEAD)' -s -w"
 ```
 
 </details>
@@ -135,21 +135,11 @@ GOOS=linux GOARCH=arm64 make build
 
 [Available GOOS and GOARCH combinations](https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63)
 
-<details>
-<summary><strong>Legacy installation methods (original mangal, not maintained for Koma)</strong></summary>
+### Script (Linux, macOS, Termux)
 
-The following installation methods were available for the original [metafates/mangal](https://github.com/metafates/mangal) project. They install the original mangal, **not Koma**, and may no longer be functional since the upstream project was archived.
-
-- **Script (Linux, MacOS, Termux):** `curl -sSL mangal.metafates.one/install | sh`
-- **Arch Linux:** [AUR package](https://aur.archlinux.org/packages/mangal-bin)
-- **MacOS (Homebrew):** `brew tap metafates/mangal && brew install mangal`
-- **Windows (Scoop):** `scoop bucket add extras && scoop install mangal`
-- **Termux:** `pkg install mangal`
-- **Gentoo:** via [raiagent](https://github.com/leycec/raiagent) overlay
-- **Nix:** `nix-env -iA nixpkgs.mangal`
-- **Docker:** `docker pull metafates/mangal`
-
-</details>
+```shell
+curl -sSL https://raw.githubusercontent.com/yukiteruamano/koma/main/scripts/install | sh
+```
 
 ## Usage
 
@@ -185,7 +175,7 @@ Just run `koma` and you're ready to go.
 ![TUI](https://user-images.githubusercontent.com/62389790/198830334-fd85c74f-cf3b-4e56-9262-5d62f7f829f4.png)
 
 > If you wonder what those icons mean - `D` stands for "downloaded", `*` shows that chapter is marked to be downloaded.
-> You can choose different icons, e.g. nerd font ones - just run mangal with `--icons nerd`.
+> You can choose different icons, e.g. nerd font ones - just run koma with `--icons nerd`.
 > Available options are `nerd`, `emoji`, `kaomoji` and `squares`
 
 ### Mini
@@ -202,7 +192,7 @@ Inline mode is intended for use with other scripts.
 
 Type `koma help inline` for more information.
 
-See [Wiki](https://github.com/metafates/mangal/wiki/Inline-mode) for more examples.
+See [GitHub](https://github.com/yukiteruamano/koma) for more examples.
 
 You can override the download directory per invocation with `--download-dir`:
 
@@ -272,7 +262,7 @@ Koma also supports integration with Anilist.
 Besides fetching metadata for each manga when downloading,
 Koma can also mark chapters as read on your Anilist profile when you read them inside Koma.
 
-For more information see [wiki](https://github.com/metafates/mangal/wiki/Anilist-Integration)
+For more information see [GitHub](https://github.com/yukiteruamano/koma)
 
 ## Changes from upstream
 
@@ -315,7 +305,7 @@ Planned for future releases:
 - [ ] GitHub Releases with GoReleaser
 - [ ] Homebrew tap
 - [ ] Docker image
-- [ ] Go module path migration from `metafates/mangal` to `JaneWoo0068/koma`
+- [x] Go module path migration from `metafates/mangal` to `yukiteruamano/koma`
 - [ ] Modernize TUI interface
 - [ ] Updated Lua scraper documentation and examples
 

@@ -3,10 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/style"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/style"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"reflect"
@@ -132,7 +132,7 @@ var defaults = [key.DefinedFieldsCount]Field{
 		`Where to download manga
 Absolute or relative.
 You can also use tilde (~) to refer to your home directory or use env variables.
-Examples: ~/... or $HOME/... or ${MANGA_PATH}-mangal`,
+Examples: ~/... or $HOME/... or ${MANGA_PATH}-koma`,
 	},
 	{
 		key.DownloaderChapterNameTemplate,
@@ -179,7 +179,7 @@ Do no turn it off unless you have some issues`,
 		[]string{},
 		`Default sources to use.
 Will prompt if not set.
-Type "mangal sources list" to show available sources`,
+Type "koma sources list" to show available sources`,
 	},
 	{
 		key.DownloaderStopOnError,

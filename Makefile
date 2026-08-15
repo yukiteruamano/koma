@@ -1,8 +1,8 @@
 MAKEFLAGS += --silent
 
-ldflags := -X 'github.com/metafates/mangal/constant.BuiltAt=$(shell date -u)'
-ldflags += -X 'github.com/metafates/mangal/constant.BuiltBy=$(shell whoami)'
-ldflags += -X 'github.com/metafates/mangal/constant.Revision=$(shell git rev-parse --short HEAD)'
+ldflags := -X 'github.com/yukiteruamano/koma/constant.BuiltAt=$(shell date -u)'
+ldflags += -X 'github.com/yukiteruamano/koma/constant.BuiltBy=$(shell whoami)'
+ldflags += -X 'github.com/yukiteruamano/koma/constant.Revision=$(shell git rev-parse --short HEAD)'
 ldflags += -s
 ldflags += -w
 

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/metafates/mangal/provider/custom"
-	"github.com/metafates/mangal/source"
+	"github.com/yukiteruamano/koma/provider/custom"
+	"github.com/yukiteruamano/koma/source"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
@@ -16,9 +16,9 @@ var runCmd = &cobra.Command{
 	Use:   "run [file]",
 	Short: "Run lua file",
 	Long: `Runs Lua5.1 VM. Useful for debugging.
-Or you can use mangal as a standalone lua interpreter.`,
+Or you can use koma as a standalone lua interpreter.`,
 	Args:    cobra.ExactArgs(1),
-	Example: "  mangal run ./test.lua",
+	Example: "  koma run ./test.lua",
 	Run: func(cmd *cobra.Command, args []string) {
 		sourcePath := args[0]
 

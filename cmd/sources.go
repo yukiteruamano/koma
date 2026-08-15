@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/metafates/mangal/color"
-	"github.com/metafates/mangal/constant"
-	"github.com/metafates/mangal/key"
-	"github.com/metafates/mangal/tui"
-	"github.com/metafates/mangal/util"
+	"github.com/yukiteruamano/koma/color"
+	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/tui"
+	"github.com/yukiteruamano/koma/util"
 	"github.com/spf13/viper"
 	"os"
 	"os/user"
@@ -14,11 +14,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/metafates/mangal/filesystem"
-	"github.com/metafates/mangal/icon"
-	"github.com/metafates/mangal/provider"
-	"github.com/metafates/mangal/style"
-	"github.com/metafates/mangal/where"
+	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/icon"
+	"github.com/yukiteruamano/koma/provider"
+	"github.com/yukiteruamano/koma/style"
+	"github.com/yukiteruamano/koma/where"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
@@ -125,7 +125,7 @@ var sourcesInstallCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Browse and install custom scrapers",
 	Long: `Browse and install custom scrapers from official GitHub repo.
-https://github.com/metafates/mangal-scrapers`,
+https://github.com/yukiteruamano/koma-scrapers`,
 	Run: func(cmd *cobra.Command, args []string) {
 		handleErr(tui.Run(&tui.Options{Install: true}))
 	},
