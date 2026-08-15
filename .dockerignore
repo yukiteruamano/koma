@@ -1,0 +1,8 @@
+.git
+.idea
+.github
+dist
+*.md
+.goreleaser.yaml
+docker-compose.yml
+Dockerfile.release

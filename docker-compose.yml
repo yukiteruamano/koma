@@ -1,0 +1,36 @@
+services:
+  koma-amd64:
+    image: koma:amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    stdin_open: true
+    tty: true
+    environment:
+      - KOMA_DOWNLOADER_PATH=/downloads
+      - KOMA_USER=abc
+      - KOMA_UID=1000
+      - KOMA_GID=1000
+    volumes:
+      - ./config:/config
+      - ./downloads:/downloads
+    restart: unless-stopped
+
+  koma-arm64:
+    image: koma:arm64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    stdin_open: true
+    tty: true
+    environment:
+      - KOMA_DOWNLOADER_PATH=/downloads
+      - KOMA_USER=abc
+      - KOMA_UID=1000
+      - KOMA_GID=1000
+    volumes:
+      - ./config:/config
+      - ./downloads:/downloads
+    restart: unless-stopped

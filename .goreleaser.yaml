@@ -13,9 +13,7 @@ builds:
       - windows
       - darwin
     goarch:
-      - "386"
       - amd64
-      - arm
       - arm64
     flags:
       - -trimpath
@@ -34,7 +32,7 @@ archives:
       {{- else if eq .Os "windows" }}Windows
       {{- else }}{{ .Os }}{{ end }}_
       {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arch "arm64" }}aarch64
       {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
@@ -84,17 +82,39 @@ dockers:
   - goos: linux
     goarch: amd64
     image_templates:
-      - "ghcr.io/janewoo0068/koma:latest"
-      - "ghcr.io/janewoo0068/koma:{{ .Tag }}"
+      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-amd64"
+    dockerfile: Dockerfile.release
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.source=https://github.com/JaneWoo0068/koma"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .ShortCommit }}"
     skip_push: false
-    use: docker
   - goos: linux
     goarch: arm64
     image_templates:
-      - "ghcr.io/janewoo0068/koma:latest-arm64"
+      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-arm64"
+    dockerfile: Dockerfile.release
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.source=https://github.com/JaneWoo0068/koma"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .ShortCommit }}"
+    skip_push: false
+
+docker_manifests:
+  - name_template: "ghcr.io/janewoo0068/koma:latest"
+    image_templates:
+      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-amd64"
       - "ghcr.io/janewoo0068/koma:{{ .Tag }}-arm64"
     skip_push: false
-    use: docker
+  - name_template: "ghcr.io/janewoo0068/koma:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-amd64"
+      - "ghcr.io/janewoo0068/koma:{{ .Tag }}-arm64"
+    skip_push: false
 
 brews:
   - name: koma
