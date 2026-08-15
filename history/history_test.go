@@ -2,9 +2,10 @@ package history
 
 import (
 	"fmt"
+	. "github.com/smartystreets/goconvey/convey"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/source"
-	. "github.com/smartystreets/goconvey/convey"
+	"sync"
 	"testing"
 )
 
@@ -67,4 +68,75 @@ func TestHistory(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestHistoryConcurrentSaves(t *testing.T) {
+	const count = 20
+
+	var wg sync.WaitGroup
+	wg.Add(count)
+	for i := 0; i < count; i++ {
+		i := i
+		go func() {
+			defer wg.Done()
+			chapter := source.Chapter{
+				Name:  fmt.Sprintf("chapter-%d", i),
+				Index: uint16(i),
+				ID:    fmt.Sprintf("id-%d", i),
+				Manga: &source.Manga{Name: fmt.Sprintf("manga-%d", i), Source: testSource{}},
+			}
+			if err := Save(&chapter); err != nil {
+				t.Errorf("Save(%d) failed: %v", i, err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	chapters, err := Get()
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	for i := 0; i < count; i++ {
+		key := fmt.Sprintf("manga-%d (test source)", i)
+		if _, ok := chapters[key]; !ok {
+			t.Errorf("concurrent save %d was lost", i)
+		}
+	}
+}
+
+func TestHistoryRemove(t *testing.T) {
+	chapter := source.Chapter{
+		Name:  "to-remove",
+		Index: 1,
+		ID:    "remove-id",
+		Manga: &source.Manga{Name: "remove-manga", Source: testSource{}},
+	}
+
+	if err := Save(&chapter); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	chapters, err := Get()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	saved := chapters[fmt.Sprintf("%s (%s)", chapter.Manga.Name, chapter.Source().ID())]
+	if saved == nil {
+		t.Fatal("expected chapter to be saved before removal")
+	}
+
+	if err := Remove(saved); err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
+
+	chapters, err = Get()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, ok := chapters[fmt.Sprintf("%s (%s)", chapter.Manga.Name, chapter.Source().ID())]; ok {
+		t.Error("chapter should have been removed")
+	}
 }

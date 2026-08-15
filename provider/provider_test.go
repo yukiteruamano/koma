@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"github.com/yukiteruamano/koma/provider/mangapill"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/yukiteruamano/koma/provider/mangapill"
 	"testing"
 )
 

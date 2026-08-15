@@ -2,16 +2,14 @@ package cbz
 
 import (
 	"archive/zip"
-	"bytes"
+	"github.com/samber/lo"
+	. "github.com/smartystreets/goconvey/convey"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/config"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
-	"github.com/yukiteruamano/koma/source"
-	"github.com/samber/lo"
-	. "github.com/smartystreets/goconvey/convey"
-	"github.com/spf13/viper"
-	"io/fs"
+	"github.com/yukiteruamano/koma/test/testutil"
 	"path/filepath"
 	"testing"
 )
@@ -20,6 +18,7 @@ func init() {
 	filesystem.SetMemMapFs()
 	lo.Must0(config.Setup())
 	viper.Set(key.FormatsUse, constant.FormatCBZ)
+	viper.Set(key.MetadataComicInfoXML, true)
 }
 
 func TestCBZ(t *testing.T) {
@@ -27,7 +26,7 @@ func TestCBZ(t *testing.T) {
 
 	Convey("Given a FormatCBZ converter", t, func() {
 		Convey("When saving a chapter", func() {
-			chapter := SampleChapter(t)
+			chapter := testutil.ChapterWithPages("chapter name", 3)
 			result, err := cbz.Save(chapter)
 			Convey("Then the error should be nil", func() {
 				So(err, ShouldBeNil)
@@ -60,63 +59,4 @@ func TestCBZ(t *testing.T) {
 			})
 		})
 	})
-
-	_ = cbz
-}
-
-func SampleChapter(t *testing.T) *source.Chapter {
-	t.Helper()
-	chapter := source.Chapter{
-		Name:  "chapter name",
-		URL:   "chapter url",
-		Index: 42069,
-		ID:    "fawfa",
-		Pages: []*source.Page{},
-	}
-	manga := source.Manga{
-		Name:     "manga name",
-		URL:      "manga url",
-		Index:    1337,
-		ID:       "wjakfkawgjj",
-		Chapters: []*source.Chapter{&chapter},
-	}
-	chapter.Manga = &manga
-
-	// to get images
-	filesystem.SetOsFs()
-	defer filesystem.SetMemMapFs()
-
-	// get all images from ../assets/testdata
-	err := filesystem.Api().Walk(
-		// ../../assets/testdata
-		// I wish windows used a normal path separator instead of whatever this \ is
-		filepath.Join(filepath.Dir(filepath.Dir(lo.Must(filepath.Abs(".")))), filepath.Join("assets", "testdata")),
-		func(path string, info fs.FileInfo, _ error) error {
-			if lo.Must(filesystem.Api().IsDir(path)) || filepath.Ext(path) != ".jpeg" {
-				return nil
-			}
-
-			image, err := filesystem.Api().ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			page := source.Page{
-				URL:       "dwadwaf",
-				Index:     0,
-				Extension: filepath.Ext(path),
-				Chapter:   &chapter,
-				Contents:  bytes.NewBuffer(image),
-			}
-			chapter.Pages = append(chapter.Pages, &page)
-
-			return nil
-		},
-	)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return &chapter
 }

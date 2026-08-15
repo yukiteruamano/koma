@@ -1,34 +1,52 @@
 package util
 
-import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-)
-
-var stack = Stack[int]{}
+import "testing"
 
 func TestStack(t *testing.T) {
-	Convey("Given an int stack", t, func() {
-		Convey("When pushing a value", func() {
-			stack.Push(1)
-			Convey("Then the stack should have the value", func() {
-				So(stack.Len(), ShouldEqual, 1)
-				So(stack.Pop(), ShouldEqual, 1)
-				So(stack.Len(), ShouldEqual, 0)
-			})
-		})
+	t.Run("lifo ordering", func(t *testing.T) {
+		stack := Stack[int]{}
+		for _, v := range []int{1, 2, 3} {
+			stack.Push(v)
+		}
 
-		Convey("When pushing multiple values", func() {
-			stack.Push(1)
-			stack.Push(2)
-			stack.Push(3)
-			Convey("Then the stack should have the values", func() {
-				So(stack.Len(), ShouldEqual, 3)
-				So(stack.Pop(), ShouldEqual, 3)
-				So(stack.Pop(), ShouldEqual, 2)
-				So(stack.Pop(), ShouldEqual, 1)
-				So(stack.Len(), ShouldEqual, 0)
-			})
-		})
+		if stack.Len() != 3 {
+			t.Fatalf("Len = %d, want 3", stack.Len())
+		}
+		if got := stack.Pop(); got != 3 {
+			t.Errorf("Pop = %d, want 3", got)
+		}
+		if got := stack.Pop(); got != 2 {
+			t.Errorf("Pop = %d, want 2", got)
+		}
+		if got := stack.Pop(); got != 1 {
+			t.Errorf("Pop = %d, want 1", got)
+		}
+		if stack.Len() != 0 {
+			t.Errorf("Len = %d, want 0", stack.Len())
+		}
+	})
+
+	t.Run("peek does not remove", func(t *testing.T) {
+		stack := Stack[int]{}
+		stack.Push(7)
+		stack.Push(8)
+
+		if got := stack.Peek(); got != 8 {
+			t.Errorf("Peek = %d, want 8", got)
+		}
+		if stack.Len() != 2 {
+			t.Errorf("Len = %d, want 2 after peek", stack.Len())
+		}
+	})
+
+	t.Run("clear empties", func(t *testing.T) {
+		stack := Stack[int]{}
+		stack.Push(1)
+		stack.Push(2)
+		stack.Clear()
+
+		if stack.Len() != 0 {
+			t.Errorf("Len = %d, want 0 after Clear", stack.Len())
+		}
 	})
 }

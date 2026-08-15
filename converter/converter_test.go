@@ -1,8 +1,8 @@
 package converter
 
 import (
-	"github.com/yukiteruamano/koma/constant"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/yukiteruamano/koma/constant"
 	"testing"
 )
 

@@ -3,8 +3,8 @@ package util
 import (
 	"testing"
 
-	"github.com/yukiteruamano/koma/key"
 	"github.com/spf13/viper"
+	"github.com/yukiteruamano/koma/key"
 )
 
 func BenchmarkSanitizeFilename(b *testing.B) {

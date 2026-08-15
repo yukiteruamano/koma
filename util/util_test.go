@@ -2,6 +2,7 @@ package util
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"regexp"
 	"testing"
 )
 
@@ -110,4 +111,70 @@ func TestSanitizeFilename(t *testing.T) {
 
 func TestTerminalSize(t *testing.T) {
 	t.Skipf("Cannot test terminal size")
+}
+
+func TestMinMax(t *testing.T) {
+	t.Run("max", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			input []int
+			want  int
+		}{
+			{name: "ordered", input: []int{1, 2, 3, 4}, want: 4},
+			{name: "reversed", input: []int{9, 5, 7}, want: 9},
+			{name: "negative", input: []int{-5, -1, -3}, want: -1},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := Max(tt.input...); got != tt.want {
+					t.Errorf("Max() = %d, want %d", got, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("min", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			input []int
+			want  int
+		}{
+			{name: "ordered", input: []int{1, 2, 3, 4}, want: 1},
+			{name: "reversed", input: []int{9, 5, 7}, want: 5},
+			{name: "negative", input: []int{-5, -1, -3}, want: -5},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := Min(tt.input...); got != tt.want {
+					t.Errorf("Min() = %d, want %d", got, tt.want)
+				}
+			})
+		}
+	})
+}
+
+func TestReGroups(t *testing.T) {
+	pattern := regexp.MustCompile(`(?P<name>[a-z]+)-(?P<number>\d+)`)
+
+	tests := []struct {
+		name  string
+		input string
+		want  map[string]string
+	}{
+		{name: "match", input: "foo-123", want: map[string]string{"name": "foo", "number": "123"}},
+		{name: "no match", input: "!!!", want: map[string]string{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ReGroups(pattern, tt.input)
+			for k, want := range tt.want {
+				if got[k] != want {
+					t.Errorf("group %q = %q, want %q", k, got[k], want)
+				}
+			}
+		})
+	}
 }

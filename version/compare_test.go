@@ -1,90 +1,44 @@
 package version
 
-import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-)
+import "testing"
 
 func TestCompareVersions(t *testing.T) {
-	Convey("Given two versions with different patches", t, func() {
-		v1, v2 := "1.0.0", "1.0.1"
-		Convey("When comparing "+v1+" to "+v2, func() {
-			result, err := Compare(v1, v2)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be -1", func() {
-					So(result, ShouldEqual, -1)
-				})
-			})
-		})
+	t.Parallel()
 
-		Convey("When comparing "+v2+" to "+v1, func() {
-			result, err := Compare(v2, v1)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be 1", func() {
-					So(result, ShouldEqual, 1)
-				})
-			})
-		})
-	})
+	tests := []struct {
+		name string
+		a    string
+		b    string
+		want int
+	}{
+		{name: "patch lower", a: "1.0.0", b: "1.0.1", want: -1},
+		{name: "patch higher", a: "1.0.1", b: "1.0.0", want: 1},
+		{name: "minor lower", a: "1.0.0", b: "1.1.0", want: -1},
+		{name: "minor higher", a: "1.1.0", b: "1.0.0", want: 1},
+		{name: "major lower", a: "1.0.0", b: "2.0.0", want: -1},
+		{name: "major higher", a: "2.0.0", b: "1.0.0", want: 1},
+		{name: "equal", a: "1.0.0", b: "1.0.0", want: 0},
+		{name: "v prefix", a: "v1.2.3", b: "1.2.3", want: 0},
+	}
 
-	Convey("Given two versions with different minor versions", t, func() {
-		v1, v2 := "1.0.0", "1.1.0"
-		Convey("When comparing "+v1+" to "+v2, func() {
-			result, err := Compare(v1, v2)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be -1", func() {
-					So(result, ShouldEqual, -1)
-				})
-			})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Compare(tt.a, tt.b)
+			if err != nil {
+				t.Fatalf("Compare(%q, %q) failed: %v", tt.a, tt.b, err)
+			}
+			if got != tt.want {
+				t.Errorf("Compare(%q, %q) = %d, want %d", tt.a, tt.b, got, tt.want)
+			}
 		})
+	}
+}
 
-		Convey("When comparing "+v2+" to "+v1, func() {
-			result, err := Compare(v2, v1)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be 1", func() {
-					So(result, ShouldEqual, 1)
-				})
-			})
-		})
-	})
+func TestCompareVersionsInvalid(t *testing.T) {
+	t.Parallel()
 
-	Convey("Given two versions with different major versions", t, func() {
-		v1, v2 := "1.0.0", "2.0.0"
-		Convey("When comparing "+v1+" to "+v2, func() {
-			result, err := Compare(v1, v2)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be -1", func() {
-					So(result, ShouldEqual, -1)
-				})
-			})
-		})
-
-		Convey("When comparing "+v2+" to "+v1, func() {
-			result, err := Compare(v2, v1)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be 1", func() {
-					So(result, ShouldEqual, 1)
-				})
-			})
-		})
-	})
-
-	Convey("Given two same versions", t, func() {
-		v1, v2 := "1.0.0", "1.0.0"
-		Convey("When comparing "+v1+" to "+v2, func() {
-			result, err := Compare(v1, v2)
-			Convey("Error should be nil", func() {
-				So(err, ShouldBeNil)
-				Convey("Then the result should be 0", func() {
-					So(result, ShouldEqual, 0)
-				})
-			})
-		})
-	})
+	if _, err := Compare("not-a-version", "1.0.0"); err == nil {
+		t.Error("expected an error for an invalid version")
+	}
 }

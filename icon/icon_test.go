@@ -1,9 +1,9 @@
 package icon
 
 import (
-	"github.com/yukiteruamano/koma/key"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
+	"github.com/yukiteruamano/koma/key"
 	"testing"
 )
 

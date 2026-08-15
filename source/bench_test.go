@@ -3,8 +3,8 @@ package source
 import (
 	"testing"
 
-	"github.com/yukiteruamano/koma/key"
 	"github.com/spf13/viper"
+	"github.com/yukiteruamano/koma/key"
 )
 
 type fakeSource struct{}
@@ -24,8 +24,8 @@ func BenchmarkFormattedName(b *testing.B) {
 
 	p := fakeSource{}
 	chapter := &Chapter{
-		Name:  "The Awkward ? Title",
-		Index: 1,
+		Name:   "The Awkward ? Title",
+		Index:  1,
 		Volume: "Volume 01",
 		Manga: &Manga{
 			Name:   "Example Manga: Chapter",

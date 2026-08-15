@@ -2,15 +2,16 @@ package pdf
 
 import (
 	"bytes"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/samber/lo"
+	. "github.com/smartystreets/goconvey/convey"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/config"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/source"
-	"github.com/samber/lo"
-	. "github.com/smartystreets/goconvey/convey"
-	"github.com/spf13/viper"
-	"io/fs"
+	"github.com/yukiteruamano/koma/test/testutil"
 	"path/filepath"
 	"testing"
 )
@@ -19,6 +20,7 @@ func init() {
 	filesystem.SetMemMapFs()
 	lo.Must0(config.Setup())
 	viper.Set(key.FormatsUse, constant.FormatPDF)
+	viper.Set(key.FormatsSkipUnsupportedImages, false)
 }
 
 func TestPDF(t *testing.T) {
@@ -26,7 +28,7 @@ func TestPDF(t *testing.T) {
 
 	Convey("Given a FormatPDF converter", t, func() {
 		Convey("When saving a chapter", func() {
-			chapter := SampleChapter(t)
+			chapter := testutil.ChapterWithPages("chapter name", 3)
 			result, err := pdf.Save(chapter)
 			Convey("Then the error should be nil", func() {
 				So(err, ShouldBeNil)
@@ -50,59 +52,69 @@ func TestPDF(t *testing.T) {
 	})
 }
 
-func SampleChapter(t *testing.T) *source.Chapter {
-	t.Helper()
-	chapter := source.Chapter{
-		Name:  "chapter name",
-		URL:   "chapter url",
-		Index: 42069,
-		ID:    "fawfa",
-		Pages: []*source.Page{},
+func TestPagesToPDFProducesExpectedPageCount(t *testing.T) {
+	chapter := testutil.ChapterWithPages("pages", 3)
+
+	var out bytes.Buffer
+	if err := pagesToPDF(&out, chapter.Pages); err != nil {
+		t.Fatalf("pagesToPDF failed: %v", err)
 	}
-	manga := source.Manga{
-		Name:     "manga name",
-		URL:      "manga url",
-		Index:    1337,
-		ID:       "wjakfkawgjj",
-		Chapters: []*source.Chapter{&chapter},
+
+	ctx, err := api.ReadAndValidate(bytes.NewReader(out.Bytes()), nil)
+	if err != nil {
+		t.Fatalf("generated PDF is not parseable: %v", err)
 	}
-	chapter.Manga = &manga
 
-	// to get images
-	filesystem.SetOsFs()
-	defer filesystem.SetMemMapFs()
+	if ctx.PageCount != len(chapter.Pages) {
+		t.Errorf("PageCount = %d, want %d", ctx.PageCount, len(chapter.Pages))
+	}
+}
 
-	// get all images from ../assets/testdata
-	err := filesystem.Api().Walk(
-		// ../../assets/testdata
-		// I wish windows used a normal path separator instead of whatever this \ is
-		filepath.Join(filepath.Dir(filepath.Dir(lo.Must(filepath.Abs(".")))), filepath.Join("assets", "testdata")),
-		func(path string, info fs.FileInfo, _ error) error {
-			if lo.Must(filesystem.Api().IsDir(path)) || filepath.Ext(path) != ".jpeg" {
-				return nil
-			}
+func TestPagesToPDFSkipsUnsupportedImages(t *testing.T) {
+	viper.Set(key.FormatsSkipUnsupportedImages, true)
+	defer viper.Set(key.FormatsSkipUnsupportedImages, false)
 
-			image, err := filesystem.Api().ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
+	chapter := testutil.ChapterWithPages("pages", 2)
 
-			page := source.Page{
-				URL:       "dwadwaf",
-				Index:     0,
-				Extension: filepath.Ext(path),
-				Chapter:   &chapter,
-				Contents:  bytes.NewBuffer(image),
-			}
-			chapter.Pages = append(chapter.Pages, &page)
+	// inject a corrupt "image" that pdfcpu cannot decode
+	chapter.Pages = append(chapter.Pages, &source.Page{
+		Contents: bytes.NewBuffer([]byte("this is not an image")),
+	})
 
-			return nil
-		},
-	)
+	var out bytes.Buffer
+	if err := pagesToPDF(&out, chapter.Pages); err != nil {
+		t.Fatalf("pagesToPDF should skip unsupported images: %v", err)
+	}
+}
 
+func TestPagesToPDFRejectsUnsupportedImages(t *testing.T) {
+	viper.Set(key.FormatsSkipUnsupportedImages, false)
+
+	chapter := testutil.ChapterWithPages("pages", 1)
+	chapter.Pages = append(chapter.Pages, &source.Page{
+		Contents: bytes.NewBuffer([]byte("this is not an image")),
+	})
+
+	var out bytes.Buffer
+	if err := pagesToPDF(&out, chapter.Pages); err == nil {
+		t.Fatal("expected an error for an unsupported image")
+	}
+}
+
+func TestPagesToPDFSkipsNilContents(t *testing.T) {
+	chapter := testutil.ChapterWithPages("pages", 2)
+	chapter.Pages[1].Contents = nil
+
+	var out bytes.Buffer
+	if err := pagesToPDF(&out, chapter.Pages); err != nil {
+		t.Fatalf("pagesToPDF should skip nil contents: %v", err)
+	}
+
+	ctx, err := api.ReadAndValidate(bytes.NewReader(out.Bytes()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	return &chapter
+	if ctx.PageCount != 1 {
+		t.Errorf("PageCount = %d, want 1", ctx.PageCount)
+	}
 }
