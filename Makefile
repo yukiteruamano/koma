@@ -10,6 +10,8 @@ build_flags := -ldflags=${ldflags}
 
 all: help
 
+.PHONY: all help build install test clean uninstall gif check-deps-version check-deps-update
+
 help:
 	@echo "Usage: make [target]"
 	@echo ""
@@ -18,6 +20,7 @@ help:
 	@echo "  install      Install the koma binary"
 	@echo "  uninstall    Uninstall the koma binary"
 	@echo "  test         Run the tests"
+	@echo "  clean        Remove build artifacts and Go build/test caches"
 	@echo "  check-deps-version   Check Go toolchain, outdated deps and vulnerabilities (advisory)"
 	@echo "  check-deps-update    Bump outdated direct dependencies to latest"
 	@echo "  gif          Generate usage gifs"
@@ -34,6 +37,11 @@ build:
 test:
 	@go test ./...
 
+clean:
+	@rm -f koma koma_test
+	@rm -rf dist
+	@go clean -cache -testcache
+
 .PHONY: check-deps-version
 check-deps-version:
 	@./scripts/check-deps.sh
@@ -43,8 +51,9 @@ check-deps-update:
 	@./scripts/check-deps.sh --update
 
 uninstall:
-	@rm -f $(shell which koma)
+	@if command -v koma >/dev/null 2>&1; then rm -f $$(command -v koma); else echo "koma is not installed"; fi
 
 gif:
+	@command -v vhs >/dev/null 2>&1 || { echo "vhs is required (https://github.com/charmbracelet/vhs)"; exit 1; }
 	@vhs assets/tui.tape
 	@vhs assets/inline.tape
