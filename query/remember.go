@@ -53,5 +53,10 @@ func Remember(query string, weight int) error {
 		}
 	}
 
-	return cacher.Set(cached)
+	if err := cacher.Set(cached); err != nil {
+		return err
+	}
+
+	invalidateSuggestions()
+	return nil
 }
