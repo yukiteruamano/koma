@@ -27,6 +27,10 @@ type date struct {
 	Day   int `json:"day"`
 }
 
+// htmlTagRegex strips html tags from anilist descriptions. Hoisted so it is
+// not recompiled for every manga.
+var htmlTagRegex = regexp.MustCompile(`<.*?>`)
+
 // NewDate creates a date value. Exported for use by providers.
 func NewDate(year, month, day int) date {
 	return date{Year: year, Month: month, Day: day}
@@ -153,7 +157,6 @@ func (m *Manga) DownloadCover(overwrite bool, path string, progress func(string)
 	if m.coverDownloaded {
 		return nil
 	}
-	m.coverDownloaded = true
 
 	log.Info("Downloading cover for ", m.Name)
 	progress("Downloading cover")
@@ -180,6 +183,7 @@ func (m *Manga) DownloadCover(overwrite bool, path string, progress func(string)
 
 		if exists {
 			log.Warn("Cover already exists")
+			m.coverDownloaded = true
 			return nil
 		}
 	}
@@ -201,22 +205,27 @@ func (m *Manga) DownloadCover(overwrite bool, path string, progress func(string)
 	defer util.Ignore(resp.Body.Close)
 
 	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("cover download failed: %s", resp.Status)
 		log.Error(err)
 		return err
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	file, err := filesystem.Api().Create(path)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
-	err = filesystem.Api().WriteFile(path, data, os.ModePerm)
+	_, err = io.Copy(file, resp.Body)
+	if closeErr := file.Close(); err == nil && closeErr != nil {
+		err = closeErr
+	}
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
+	m.coverDownloaded = true
 	log.Info("Cover downloaded")
 	return nil
 }
@@ -242,7 +251,6 @@ func (m *Manga) PopulateMetadata(progress func(string)) error {
 	if m.populated {
 		return nil
 	}
-	m.populated = true
 
 	progress("Fetching metadata from anilist")
 	log.Infof("Populating metadata for %s", m.Name)
@@ -256,19 +264,14 @@ func (m *Manga) PopulateMetadata(progress func(string)) error {
 		return fmt.Errorf("manga '%s' not found on Anilist", m.Name)
 	}
 
+	threshold := viper.GetInt(key.MetadataComicInfoXMLTagRelevanceThreshold)
+
 	m.Metadata.Genres = manga.Genres
 	// replace <br> with newlines and remove other html tags
-	m.Metadata.Summary = regexp.
-		MustCompile("<.*?>").
-		ReplaceAllString(
-			strings.
-				ReplaceAll(
-					manga.Description,
-					"<br>",
-					"\n",
-				),
-			"",
-		)
+	m.Metadata.Summary = htmlTagRegex.ReplaceAllString(
+		strings.ReplaceAll(manga.Description, "<br>", "\n"),
+		"",
+	)
 
 	var characters = make([]string, len(manga.Characters.Nodes))
 	for i, character := range manga.Characters.Nodes {
@@ -278,7 +281,7 @@ func (m *Manga) PopulateMetadata(progress func(string)) error {
 
 	var tags = make([]string, 0)
 	for _, tag := range manga.Tags {
-		if tag.Rank >= viper.GetInt(key.MetadataComicInfoXMLTagRelevanceThreshold) {
+		if tag.Rank >= threshold {
 			tags = append(tags, tag.Name)
 		}
 	}
@@ -331,6 +334,10 @@ func (m *Manga) PopulateMetadata(progress func(string)) error {
 
 	urls = append(urls, fmt.Sprintf("https://myanimelist.net/manga/%d", manga.IDMal))
 	m.Metadata.URLs = urls
+
+	// only mark as populated after the whole fetch succeeded, so failures
+	// can be retried later in the session
+	m.populated = true
 
 	return nil
 }

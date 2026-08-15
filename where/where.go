@@ -22,7 +22,12 @@ var created sync.Map
 // will return the path of the directory
 func mkdir(path string) string {
 	if _, ok := created.Load(path); ok {
-		return path
+		// the directory may have been deleted at runtime (e.g. the startup
+		// temp cleanup); re-verify and recreate instead of trusting the memo
+		if _, err := filesystem.Api().Stat(path); err == nil {
+			return path
+		}
+		created.Delete(path)
 	}
 
 	lo.Must0(filesystem.Api().MkdirAll(path, os.ModePerm))

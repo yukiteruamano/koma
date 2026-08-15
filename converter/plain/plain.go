@@ -1,13 +1,13 @@
 package plain
 
 import (
+	"github.com/sourcegraph/conc/pool"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/source"
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 )
 
 type Plain struct{}
@@ -30,26 +30,20 @@ func save(chapter *source.Chapter, temp bool) (path string, err error) {
 		return
 	}
 
-	err = filesystem.Api().Mkdir(path, os.ModePerm)
+	err = filesystem.Api().MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(chapter.Pages))
+	p := pool.New().WithMaxGoroutines(8).WithErrors().WithFirstError()
 	for _, page := range chapter.Pages {
-		func(page *source.Page) {
-			defer wg.Done()
-
-			if err != nil {
-				return
-			}
-
-			err = savePage(page, path)
-		}(page)
+		page := page
+		p.Go(func() error {
+			return savePage(page, path)
+		})
 	}
 
-	wg.Wait()
+	err = p.Wait()
 	return
 }
 
@@ -59,18 +53,19 @@ func savePage(page *source.Page, to string) error {
 		return nil
 	}
 
-	file, err := filesystem.Api().Create(filepath.Join(to, page.Filename()))
+	dst := filepath.Join(to, page.Filename())
+	file, err := filesystem.Api().Create(dst)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = file.Close() }()
 
-	_, err = io.Copy(file, page.Contents)
-	if err != nil {
+	if _, err = io.Copy(file, page.Contents); err != nil {
+		// do not leave a partial page at the final path
+		_ = filesystem.Api().Remove(dst)
 		return err
 	}
 
-	_ = file.Close()
 	_ = page.Close()
-
 	return nil
 }

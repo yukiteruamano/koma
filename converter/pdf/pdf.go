@@ -47,6 +47,12 @@ func save(chapter *source.Chapter, temp bool) (path string, err error) {
 	}
 
 	defer util.Ignore(file.Close)
+	defer func() {
+		// do not leave a partial file at the final path
+		if err != nil {
+			_ = filesystem.Api().Remove(path)
+		}
+	}()
 
 	err = pagesToPDF(file, chapter.Pages)
 	return
@@ -75,6 +81,10 @@ func pagesToPDF(w io.Writer, pages []*source.Page) error {
 	}
 
 	for _, r := range pages {
+		if r.Contents == nil {
+			continue
+		}
+
 		// Read the page contents so we can decode image dimensions
 		// and then set the page size to match the image,
 		// preventing tall webtoon/manhwa pages from being clipped to A4.

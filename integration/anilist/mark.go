@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/log"
+	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/source"
 	"net/http"
 	"strconv"
@@ -39,7 +40,7 @@ func (a *Anilist) MarkRead(chapter *source.Chapter) error {
 		"query": markReadQuery,
 		"variables": map[string]interface{}{
 			"ID":       manga.ID,
-			"progress": chapter.Index,
+			"progress": int(chapter.Index) + 1,
 		},
 	}
 
@@ -69,7 +70,7 @@ func (a *Anilist) MarkRead(chapter *source.Chapter) error {
 
 	// send request
 	log.Info("Sending request to Anilist: " + string(jsonBody))
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := network.Do(req)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -79,6 +80,8 @@ func (a *Anilist) MarkRead(chapter *source.Chapter) error {
 		log.Info("Request failed with status code: " + strconv.Itoa(resp.StatusCode))
 		return fmt.Errorf("invalid response code %d", resp.StatusCode)
 	}
+
+	defer func() { _ = resp.Body.Close() }()
 
 	// decode response
 	var response struct {

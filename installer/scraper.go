@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/where"
 	"io"
 	"net/http"
@@ -37,7 +38,12 @@ func (s *Scraper) download() error {
 		return fmt.Errorf("url must be set")
 	}
 
-	res, err := http.Get(s.URL)
+	req, err := http.NewRequest(http.MethodGet, s.URL, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := network.Do(req)
 	if err != nil {
 		return err
 	}
@@ -45,6 +51,8 @@ func (s *Scraper) download() error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to get %s: %s", s.URL, res.Status)
 	}
+
+	defer func() { _ = res.Body.Close() }()
 
 	var b []byte
 	b, err = io.ReadAll(res.Body)

@@ -71,12 +71,18 @@ func GetByID(id int) (*Manga, error) {
 		return nil, fmt.Errorf("invalid response code %d", resp.StatusCode)
 	}
 
+	defer func() { _ = resp.Body.Close() }()
+
 	// decode response
 	var response searchByIDResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		log.Error(err)
 		return nil, err
+	}
+
+	if response.Data.Media == nil {
+		return nil, fmt.Errorf("no manga found for id %d", id)
 	}
 
 	manga := response.Data.Media
@@ -146,6 +152,8 @@ func SearchByName(name string) ([]*Manga, error) {
 		_ = failCacher.Set(name, true)
 		return nil, fmt.Errorf("invalid response code %d", resp.StatusCode)
 	}
+
+	defer func() { _ = resp.Body.Close() }()
 
 	// decode response
 	var response searchByNameResponse

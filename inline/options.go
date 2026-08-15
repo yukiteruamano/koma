@@ -2,10 +2,10 @@ package inline
 
 import (
 	"fmt"
-	"github.com/yukiteruamano/koma/source"
-	"github.com/yukiteruamano/koma/util"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
+	"github.com/yukiteruamano/koma/source"
+	"github.com/yukiteruamano/koma/util"
 	"io"
 	"regexp"
 	"strconv"
@@ -108,15 +108,21 @@ func ParseChaptersFilter(description string) (ChaptersFilter, error) {
 			}
 
 			from := lo.Must(strconv.ParseUint(groups[from], 10, 16))
-			from = util.Min(from, uint64(len(chapters)))
 
 			n := groups[to]
 			if n == "" {
+				if from >= uint64(len(chapters)) {
+					return []*source.Chapter{}, nil
+				}
 				return []*source.Chapter{chapters[from]}, nil
 			}
 
 			to := lo.Must(strconv.ParseUint(n, 10, 16))
-			to = util.Min(to, uint64(len(chapters)))
+
+			// clamp both bounds into the valid range to avoid slicing panics
+			last := uint64(len(chapters) - 1)
+			from = util.Min(from, last)
+			to = util.Min(to, last)
 
 			if from > to {
 				from, to = to, from

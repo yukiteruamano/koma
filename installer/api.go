@@ -3,6 +3,7 @@ package installer
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/util"
 	"io"
 	"net/http"
@@ -29,7 +30,12 @@ func (g *githubFilesCollector) collect() error {
 	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1", g.user, g.repo, g.branch)
-	res, err := http.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := network.Do(req)
 	if err != nil {
 		return err
 	}
@@ -37,6 +43,8 @@ func (g *githubFilesCollector) collect() error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to get %s: %s", url, res.Status)
 	}
+
+	defer func() { _ = res.Body.Close() }()
 
 	// decode the response
 	var r []byte

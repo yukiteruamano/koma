@@ -2,9 +2,9 @@ package mini
 
 import (
 	"errors"
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/samber/lo"
 	"os"
 )
 
@@ -90,7 +90,7 @@ func Run(options *Options) error {
 	var err error
 
 	for {
-		if m.handleState() != nil {
+		if err = m.handleState(); err != nil {
 			return err
 		}
 	}

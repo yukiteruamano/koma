@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/darylhjd/mangodex"
 	"github.com/yukiteruamano/koma/source"
@@ -17,8 +18,11 @@ func (m *Mangadex) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
 	u, _ := url.Parse(mangodex.BaseAPI)
 	u.Path = fmt.Sprintf(mangodex.GetMDHomeURLPath, chapter.ID)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	var server mangodex.MDHomeServerResponse
-	if err := m.client.RequestAndDecode(context.Background(), http.MethodGet, u.String(), nil, &server); err != nil {
+	if err := m.client.RequestAndDecode(ctx, http.MethodGet, u.String(), nil, &server); err != nil {
 		return nil, err
 	}
 
@@ -33,7 +37,7 @@ func (m *Mangadex) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
 	for i, name := range names {
 		pages[i] = &source.Page{
 			Index:     uint16(i),
-			URL:       strings.Join([]string{server.BaseURL, "data", server.Chapter.Hash, name}, "/"),
+			URL:       pageURL(server.BaseURL, server.Chapter.Hash, name),
 			Chapter:   chapter,
 			Extension: filepath.Ext(name),
 		}
@@ -41,4 +45,9 @@ func (m *Mangadex) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
 
 	chapter.Pages = pages
 	return pages, nil
+}
+
+// pageURL builds the MangaDex@Home image URL for a page.
+func pageURL(baseURL, hash, name string) string {
+	return strings.Join([]string{baseURL, "data", hash, name}, "/")
 }

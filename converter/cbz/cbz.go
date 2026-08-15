@@ -4,12 +4,12 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/spf13/viper"
 	"io"
 )
 
@@ -41,13 +41,19 @@ func save(chapter *source.Chapter, temp bool) (path string, err error) {
 	return path, nil
 }
 
-func SaveTo(chapter *source.Chapter, to string) error {
+func SaveTo(chapter *source.Chapter, to string) (err error) {
 	cbzFile, err := filesystem.Api().Create(to)
 	if err != nil {
 		return err
 	}
 
 	defer util.Ignore(cbzFile.Close)
+	defer func() {
+		// do not leave a partial archive at the final path
+		if err != nil {
+			_ = filesystem.Api().Remove(to)
+		}
+	}()
 
 	zipWriter := zip.NewWriter(cbzFile)
 	defer util.Ignore(zipWriter.Close)
@@ -69,9 +75,12 @@ func SaveTo(chapter *source.Chapter, to string) error {
 			buf := bytes.NewBuffer(marshalled)
 			err = addToZip(zipWriter, buf, "ComicInfo.xml")
 		}
+		if err != nil {
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 func addToZip(writer *zip.Writer, file io.Reader, name string) error {

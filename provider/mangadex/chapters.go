@@ -2,8 +2,10 @@ package mangadex
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/darylhjd/mangodex"
 	"github.com/spf13/viper"
@@ -11,7 +13,6 @@ import (
 	"github.com/yukiteruamano/koma/source"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 func (m *Mangadex) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
@@ -58,7 +59,9 @@ func (m *Mangadex) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 		firstRequest = false
 
 		params.Set("offset", strconv.Itoa(currOffset))
-		list, err := m.client.Chapter.GetMangaChapters(manga.ID, params)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		list, err := m.client.Chapter.GetMangaChaptersContext(ctx, manga.ID, params)
+		cancel()
 		if err != nil {
 			return nil, err
 		}

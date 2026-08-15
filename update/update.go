@@ -115,8 +115,10 @@ func Metadata(mangaPath string) error {
 			continue
 		}
 
-		// go to memmap fs to unzip
+		// go to memmap fs to unzip; restore the OS fs on every exit path
 		filesystem.SetMemMapFs()
+		defer filesystem.SetOsFs()
+
 		err = util.Unzip(file, stat.Size(), chapter.Name)
 		if err != nil {
 			log.Error(err)
@@ -156,8 +158,6 @@ func Metadata(mangaPath string) error {
 		}
 
 		_ = file.Close()
-
-		filesystem.SetOsFs()
 
 		log.Debugf("removing old %s", path)
 		err = filesystem.Api().Remove(path)

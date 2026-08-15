@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/network"
-	"github.com/samber/lo"
 	"net/http"
 	"strconv"
 )
@@ -69,6 +69,8 @@ func (a *Anilist) login() error {
 		log.Info("Request failed with status code: " + strconv.Itoa(resp.StatusCode))
 		return fmt.Errorf("invalid response code %d", resp.StatusCode)
 	}
+
+	defer func() { _ = resp.Body.Close() }()
 
 	// decode response
 	log.Info("Decoding response from Anilist")

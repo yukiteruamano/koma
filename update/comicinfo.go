@@ -1,11 +1,13 @@
 package update
 
 import (
+	"archive/zip"
 	"encoding/xml"
 	"fmt"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,40 +45,46 @@ func getComicInfoXML(chapter string) (*source.ComicInfo, error) {
 		return nil, fmt.Errorf("chapter must be a .cbz file")
 	}
 
-	// open chapter as ReaderAt
 	file, err := filesystem.Api().Open(chapter)
 	if err != nil {
 		return nil, err
 	}
+	defer util.Ignore(file.Close)
 
-	filesystem.SetMemMapFs()
-	defer filesystem.SetOsFs()
-
-	// extract ComicInfo.xml
 	stat, err := file.Stat()
 	if err != nil {
 		return nil, err
 	}
 
-	// No need to delete the file as it will be deleted when the memmap filesystem is reset
-	err = util.Unzip(file, stat.Size(), "T")
+	// Read only the ComicInfo.xml entry directly from the archive, without
+	// unzipping every page or switching the global filesystem.
+	reader, err := zip.NewReader(file, stat.Size())
 	if err != nil {
 		return nil, err
 	}
 
-	// read ComicInfo.xml
-	contents, err := filesystem.Api().ReadFile(filepath.Join("T", "ComicInfo.xml"))
-	if err != nil {
-		return nil, err
+	for _, entry := range reader.File {
+		if filepath.Base(entry.Name) != "ComicInfo.xml" {
+			continue
+		}
+
+		rc, err := entry.Open()
+		if err != nil {
+			return nil, err
+		}
+		contents, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		var comicInfo source.ComicInfo
+		if err := xml.Unmarshal(contents, &comicInfo); err != nil {
+			return nil, err
+		}
+
+		return &comicInfo, nil
 	}
 
-	// parse ComicInfo.xml
-	var comicInfo source.ComicInfo
-	err = xml.Unmarshal(contents, &comicInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return &comicInfo, nil
-
+	return nil, fmt.Errorf("no ComicInfo.xml found in %s", chapter)
 }

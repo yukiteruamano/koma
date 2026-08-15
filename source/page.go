@@ -138,6 +138,8 @@ func (p *Page) DownloadTo(path string) error {
 		err = closeErr
 	}
 	if err != nil {
+		// do not leave a partial page at the final path
+		_ = filesystem.Api().Remove(path)
 		return err
 	}
 

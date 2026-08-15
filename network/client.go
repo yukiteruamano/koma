@@ -29,6 +29,10 @@ var (
 	client     *http.Client
 )
 
+// maxBackoff caps the exponential retry delay so a misconfigured retry count
+// cannot overflow the shift or make an unreasonably long sleep.
+const maxBackoff = 30 * time.Second
+
 // Client returns a lazily built http.Client configured from viper defaults.
 // The transport is shared, so tuning happens once on first use.
 func Client() *http.Client {
@@ -67,9 +71,7 @@ func Do(req *http.Request) (*http.Response, error) {
 	var lastErr error
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 && retryable {
-			delay := baseDelay << (attempt - 1)
-			delay = delay/2 + time.Duration(rand.Int63n(int64(delay)/2+1))
-			time.Sleep(delay)
+			time.Sleep(backoffDelay(baseDelay, attempt))
 		}
 
 		var reqAttempt *http.Request
@@ -106,9 +108,10 @@ func Do(req *http.Request) (*http.Response, error) {
 }
 
 // cloneRequest returns a copy of req suitable for resending.
+// The original request context (deadline/cancellation) is preserved.
 func cloneRequest(req *http.Request) (*http.Request, error) {
 	if req.GetBody == nil {
-		return req.Clone(context.Background()), nil
+		return req.Clone(req.Context()), nil
 	}
 
 	body, err := req.GetBody()
@@ -116,7 +119,7 @@ func cloneRequest(req *http.Request) (*http.Request, error) {
 		return nil, err
 	}
 
-	clone := req.Clone(context.Background())
+	clone := req.Clone(req.Context())
 	clone.Body = body
 	return clone, nil
 }
@@ -132,4 +135,15 @@ func isTransient(err error) bool {
 	}
 
 	return false
+}
+
+// backoffDelay returns the jittered delay for the given retry attempt. The
+// exponential shift is clamped to maxBackoff so a large retry count cannot
+// overflow or panic.
+func backoffDelay(base time.Duration, attempt int) time.Duration {
+	delay := base << (attempt - 1)
+	if delay <= 0 || delay > maxBackoff {
+		delay = maxBackoff
+	}
+	return delay/2 + time.Duration(rand.Int63n(int64(delay)/2+1))
 }
