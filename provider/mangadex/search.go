@@ -3,9 +3,9 @@ package mangadex
 import (
 	"fmt"
 	"github.com/darylhjd/mangodex"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/source"
-	"github.com/spf13/viper"
 	"net/url"
 	"strconv"
 	"time"

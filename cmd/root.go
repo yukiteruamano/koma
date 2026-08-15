@@ -3,6 +3,9 @@ package cmd
 import (
 	"fmt"
 	cc "github.com/ivanpirog/coloredcobra"
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/converter"
@@ -15,9 +18,6 @@ import (
 	"github.com/yukiteruamano/koma/util"
 	"github.com/yukiteruamano/koma/version"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/lo"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"strings"
 )

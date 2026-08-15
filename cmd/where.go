@@ -1,15 +1,15 @@
 package cmd
 
 import (
-	"github.com/yukiteruamano/koma/color"
 	"github.com/samber/mo"
+	"github.com/yukiteruamano/koma/color"
 	"os"
 
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/lo"
-	"github.com/spf13/cobra"
 )
 
 type whereTarget struct {

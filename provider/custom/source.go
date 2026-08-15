@@ -2,8 +2,8 @@ package custom
 
 import (
 	"fmt"
-	"github.com/yukiteruamano/koma/source"
 	lua "github.com/yuin/gopher-lua"
+	"github.com/yukiteruamano/koma/source"
 )
 
 type luaSource struct {
@@ -49,7 +49,7 @@ func (s *luaSource) call(fn string, ret lua.LValueType, args ...lua.LValue) (lua
 	val := s.state.Get(-1)
 
 	if val.Type() != ret {
-		s.state.RaiseError("%s", fn + " was expected to return a " + ret.String() + ", got " + val.Type().String())
+		s.state.RaiseError("%s", fn+" was expected to return a "+ret.String()+", got "+val.Type().String())
 	}
 
 	return val, nil

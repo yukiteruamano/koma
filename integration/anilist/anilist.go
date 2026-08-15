@@ -1,8 +1,8 @@
 package anilist
 
 import (
-	"github.com/yukiteruamano/koma/key"
 	"github.com/spf13/viper"
+	"github.com/yukiteruamano/koma/key"
 )
 
 type Anilist struct {

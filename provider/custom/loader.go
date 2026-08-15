@@ -3,11 +3,11 @@ package custom
 import (
 	"fmt"
 	libs "github.com/metafates/mangal-lua-libs"
+	lua "github.com/yuin/gopher-lua"
+	"github.com/yuin/gopher-lua/parse"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
-	lua "github.com/yuin/gopher-lua"
-	"github.com/yuin/gopher-lua/parse"
 )
 
 func IDfromName(name string) string {

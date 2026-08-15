@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/converter"
@@ -11,7 +12,6 @@ import (
 	"github.com/yukiteruamano/koma/open"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/style"
-	"github.com/spf13/viper"
 )
 
 // Read the chapter by downloading it with the given source

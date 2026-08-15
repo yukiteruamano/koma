@@ -2,13 +2,13 @@ package converter
 
 import (
 	"fmt"
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/converter/cbz"
 	"github.com/yukiteruamano/koma/converter/pdf"
 	"github.com/yukiteruamano/koma/converter/plain"
 	"github.com/yukiteruamano/koma/converter/zip"
 	"github.com/yukiteruamano/koma/source"
-	"github.com/samber/lo"
 	"strings"
 )
 

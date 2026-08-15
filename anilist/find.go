@@ -3,9 +3,9 @@ package anilist
 import (
 	"fmt"
 	levenshtein "github.com/ka-weihe/fast-levenshtein"
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/samber/lo"
 	"strings"
 )
 

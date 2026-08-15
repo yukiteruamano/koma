@@ -3,14 +3,14 @@ package cmd
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/icon"
 	"github.com/yukiteruamano/koma/integration/anilist"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/open"
-	"github.com/samber/lo"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func init() {

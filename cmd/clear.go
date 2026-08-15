@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+	"github.com/spf13/cobra"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/icon"
 	"github.com/yukiteruamano/koma/util"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/lo"
-	"github.com/samber/mo"
-	"github.com/spf13/cobra"
 )
 
 type clearTarget struct {

@@ -2,25 +2,25 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/tui"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/spf13/viper"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"text/template"
 
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/icon"
 	"github.com/yukiteruamano/koma/provider"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/lo"
-	"github.com/spf13/cobra"
 )
 
 func init() {

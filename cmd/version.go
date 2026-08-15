@@ -1,17 +1,17 @@
 package cmd
 
 import (
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/version"
-	"github.com/samber/lo"
 	"os"
 	"runtime"
 	"strings"
 	"text/template"
 
-	"github.com/yukiteruamano/koma/constant"
 	"github.com/spf13/cobra"
+	"github.com/yukiteruamano/koma/constant"
 )
 
 func init() {

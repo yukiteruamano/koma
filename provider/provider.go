@@ -1,12 +1,12 @@
 package provider
 
 import (
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/provider/custom"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/lo"
 	"os"
 	"path/filepath"
 )

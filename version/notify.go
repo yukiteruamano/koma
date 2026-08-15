@@ -2,13 +2,13 @@ package version
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/icon"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
-	"github.com/spf13/viper"
 )
 
 func Notify() {

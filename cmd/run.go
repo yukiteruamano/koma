@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/yukiteruamano/koma/provider/custom"
-	"github.com/yukiteruamano/koma/source"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"github.com/yukiteruamano/koma/provider/custom"
+	"github.com/yukiteruamano/koma/source"
 )
 
 func init() {

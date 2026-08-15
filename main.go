@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/cmd"
 	"github.com/yukiteruamano/koma/config"
 	"github.com/yukiteruamano/koma/log"
-	"github.com/samber/lo"
 )
 
 func main() {

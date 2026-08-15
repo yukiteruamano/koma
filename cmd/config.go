@@ -11,15 +11,15 @@ import (
 	"strconv"
 
 	levenshtein "github.com/ka-weihe/fast-levenshtein"
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/config"
 	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/icon"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/where"
-	"github.com/samber/lo"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func errUnknownKey(key string) error {

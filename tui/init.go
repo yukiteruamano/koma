@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/provider"
-	"github.com/spf13/viper"
 )
 
 func (b *statefulBubble) Init() tea.Cmd {

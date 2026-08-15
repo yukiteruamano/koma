@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"github.com/yukiteruamano/koma/converter"
-	"github.com/yukiteruamano/koma/key"
-	"github.com/yukiteruamano/koma/mini"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/yukiteruamano/koma/converter"
+	"github.com/yukiteruamano/koma/key"
+	"github.com/yukiteruamano/koma/mini"
 )
 
 func init() {
