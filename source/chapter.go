@@ -221,6 +221,16 @@ func (c *Chapter) Path(temp bool) (path string, err error) {
 	return c.path(manga, c.Volume != "" && viper.GetBool(key.DownloaderCreateVolumeDir))
 }
 
+// Release frees the memory held by page contents after conversion.
+// Must be called once the chapter is no longer needed in memory.
+func (c *Chapter) Release() {
+	for _, page := range c.Pages {
+		if page != nil {
+			page.Contents = nil
+		}
+	}
+}
+
 func (c *Chapter) Source() Source {
 	return c.Manga.Source
 }

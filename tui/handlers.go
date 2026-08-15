@@ -88,25 +88,16 @@ func (b *statefulBubble) waitForScraperInstallation() tea.Cmd {
 
 func (b *statefulBubble) loadSources(ps []*provider.Provider) tea.Cmd {
 	return func() tea.Msg {
-		var (
-			sources = make([]source.Source, len(ps))
-			wg      = sync.WaitGroup{}
-			err     error
-		)
-
+		sources := make([]source.Source, len(ps))
+		wg := sync.WaitGroup{}
 		wg.Add(len(ps))
+
 		for i, p := range ps {
 			go func(i int, p *provider.Provider) {
 				defer wg.Done()
 
-				if err != nil {
-					return
-				}
-
 				log.Info("loading source " + p.ID)
-				b.progressStatus = "Initializing source"
-				var s source.Source
-				s, err = p.CreateSource()
+				s, err := p.CreateSource()
 
 				if err != nil {
 					log.Error(err)
@@ -262,20 +253,14 @@ func (b *statefulBubble) downloadChapter(chapter *source.Chapter) tea.Cmd {
 	}
 }
 
-func (b *statefulBubble) waitForChapterDownload() tea.Cmd {
-	return func() tea.Msg {
-		select {
-		case res := <-b.chapterDownloadChannel:
-			return res
-		case err := <-b.errorChannel:
-			return downloadError{err: err}
-		}
-	}
-}
-
 func (b *statefulBubble) waitForProgress() tea.Cmd {
 	return func() tea.Msg {
-		return <-b.progressChannel
+		select {
+		case msg := <-b.progressChannel:
+			return msg
+		case <-b.progressDone:
+			return progressDoneMsg{}
+		}
 	}
 }
 

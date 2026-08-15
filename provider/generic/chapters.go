@@ -8,9 +8,12 @@ import (
 
 // ChaptersOf given source.Manga
 func (s *Scraper) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
+	s.mu.Lock()
 	if chapters, ok := s.chapters[manga.URL]; ok {
+		s.mu.Unlock()
 		return chapters, nil
 	}
+	s.mu.Unlock()
 
 	ctx := colly.NewContext()
 	ctx.Put("manga", manga)
@@ -21,6 +24,9 @@ func (s *Scraper) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 	}
 
 	s.chaptersCollector.Wait()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if s.config.ReverseChapters {
 		// reverse chapters

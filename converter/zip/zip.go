@@ -7,7 +7,6 @@ import (
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/util"
 	"io"
-	"time"
 )
 
 type ZIP struct{}
@@ -36,6 +35,12 @@ func save(chapter *source.Chapter, temp bool) (path string, err error) {
 	}
 
 	defer util.Ignore(zipFile.Close)
+	defer func() {
+		// do not leave a partial archive at the final path
+		if err != nil {
+			_ = filesystem.Api().Remove(path)
+		}
+	}()
 
 	zipWriter := zip.NewWriter(zipFile)
 	defer util.Ignore(zipWriter.Close)
@@ -55,9 +60,9 @@ func save(chapter *source.Chapter, temp bool) (path string, err error) {
 
 func addToZip(writer *zip.Writer, file io.Reader, name string) error {
 	header := &zip.FileHeader{
-		Name:     name,
-		Method:   zip.Deflate,
-		Modified: time.Now(),
+		Name: name,
+		// images are already compressed; storing avoids burning CPU on deflate
+		Method: zip.Store,
 	}
 
 	headerWriter, err := writer.CreateHeader(header)

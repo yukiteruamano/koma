@@ -1,12 +1,15 @@
 package generic
 
 import (
+	"sync"
+
 	"github.com/gocolly/colly/v2"
 	"github.com/yukiteruamano/koma/source"
 )
 
 // Scraper is a generic scraper downloads html pages and parses them
 type Scraper struct {
+	mu                sync.Mutex
 	mangasCollector   *colly.Collector
 	chaptersCollector *colly.Collector
 	pagesCollector    *colly.Collector

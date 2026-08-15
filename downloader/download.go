@@ -118,9 +118,12 @@ func Download(chapter *source.Chapter, progress func(string)) (string, error) {
 		}
 	}
 
+	// pages are no longer needed in memory once converted
+	chapter.Release()
+
 	if viper.GetBool(key.HistorySaveOnDownload) {
 		go func() {
-			err = history.Save(chapter)
+			err := history.Save(chapter)
 			if err != nil {
 				log.Warn(err)
 			} else {

@@ -41,7 +41,9 @@ func New(conf *Configuration) source.Source {
 	mangasCollector.OnHTML("html", func(e *colly.HTMLElement) {
 		elements := e.DOM.Find(s.config.MangaExtractor.Selector)
 		path := e.Request.URL.String()
+		s.mu.Lock()
 		s.mangas[path] = make([]*source.Manga, elements.Length())
+		s.mu.Unlock()
 
 		elements.Each(func(i int, selection *goquery.Selection) {
 			link := s.config.MangaExtractor.URL(selection)
@@ -56,7 +58,9 @@ func New(conf *Configuration) source.Source {
 			}
 			manga.Metadata.Cover.ExtraLarge = s.config.MangaExtractor.Cover(selection)
 
+			s.mu.Lock()
 			s.mangas[path][i] = &manga
+			s.mu.Unlock()
 		})
 	})
 
@@ -77,9 +81,12 @@ func New(conf *Configuration) source.Source {
 	// Get chapters
 	chaptersCollector.OnHTML("html", func(e *colly.HTMLElement) {
 		elements := e.DOM.Find(s.config.ChapterExtractor.Selector)
-		path := e.Request.AbsoluteURL(e.Request.URL.Path)
-		s.chapters[path] = make([]*source.Chapter, elements.Length())
 		manga := e.Request.Ctx.GetAny("manga").(*source.Manga)
+		// key by the original request URL so lookups by manga.URL hit the cache
+		path := manga.URL
+		s.mu.Lock()
+		s.chapters[path] = make([]*source.Chapter, elements.Length())
+		s.mu.Unlock()
 
 		elements.Each(func(i int, selection *goquery.Selection) {
 			link := s.config.ChapterExtractor.URL(selection)
@@ -94,9 +101,13 @@ func New(conf *Configuration) source.Source {
 				Manga:  manga,
 				Volume: s.config.ChapterExtractor.Volume(selection),
 			}
+			s.mu.Lock()
 			s.chapters[path][i] = &chapter
+			s.mu.Unlock()
 		})
+		s.mu.Lock()
 		manga.Chapters = s.chapters[path]
+		s.mu.Unlock()
 	})
 	_ = chaptersCollector.Limit(&colly.LimitRule{
 		Parallelism: int(s.config.Parallelism),
@@ -115,9 +126,12 @@ func New(conf *Configuration) source.Source {
 	// Get pages
 	pagesCollector.OnHTML("html", func(e *colly.HTMLElement) {
 		elements := e.DOM.Find(s.config.PageExtractor.Selector)
-		path := e.Request.AbsoluteURL(e.Request.URL.Path)
-		s.pages[path] = make([]*source.Page, elements.Length())
 		chapter := e.Request.Ctx.GetAny("chapter").(*source.Chapter)
+		// key by the original request URL so lookups by chapter.URL hit the cache
+		path := chapter.URL
+		s.mu.Lock()
+		s.pages[path] = make([]*source.Page, elements.Length())
+		s.mu.Unlock()
 
 		elements.Each(func(i int, selection *goquery.Selection) {
 			link := s.config.PageExtractor.URL(selection)
@@ -131,9 +145,13 @@ func New(conf *Configuration) source.Source {
 				Chapter:   chapter,
 				Extension: ext,
 			}
+			s.mu.Lock()
 			s.pages[path][i] = &page
+			s.mu.Unlock()
 		})
+		s.mu.Lock()
 		chapter.Pages = s.pages[path]
+		s.mu.Unlock()
 	})
 	_ = pagesCollector.Limit(&colly.LimitRule{
 		Parallelism: int(s.config.Parallelism),

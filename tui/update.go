@@ -22,7 +22,6 @@ import (
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
 	"slices"
-	"time"
 )
 
 func (b *statefulBubble) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -657,7 +656,6 @@ func (b *statefulBubble) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return b, tea.Batch(
 				b.startLoading(),
 				b.downloadChapter(chapter),
-				b.waitForChapterDownload(),
 				b.waitForProgress(),
 				b.progressC.SetPercent(0),
 			)
@@ -692,6 +690,7 @@ func (b *statefulBubble) updateDownload(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case chapterDownloadResult:
 		if msg.err != nil {
 			if viper.GetBool(key2.DownloaderStopOnError) {
+				b.progressDoneOnce.Do(func() { close(b.progressDone) })
 				b.raiseError(msg.err)
 				return b, b.stopLoading()
 			}
@@ -704,11 +703,10 @@ func (b *statefulBubble) updateDownload(msg tea.Msg) (tea.Model, tea.Cmd) {
 		inc := 1 / float64(len(b.selectedChapters))
 
 		if b.chaptersToDownload.Len() == 0 {
-			// let the progress bar render to the end before switching states
-			return b, tea.Batch(
-				b.progressC.IncrPercent(inc),
-				tea.Tick(time.Millisecond*400, func(time.Time) tea.Msg { return downloadDoneMsg{} }),
-			)
+			// release the pending waitForProgress command, which will deliver
+			// progressDoneMsg and switch to the done state
+			b.progressDoneOnce.Do(func() { close(b.progressDone) })
+			return b, b.progressC.IncrPercent(inc)
 		}
 
 		chapter := b.chaptersToDownload.Pop()
@@ -717,13 +715,9 @@ func (b *statefulBubble) updateDownload(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return b, tea.Batch(
 			b.progressC.IncrPercent(inc),
 			b.downloadChapter(chapter),
-			b.waitForChapterDownload(),
 			b.waitForProgress(),
 		)
-	case downloadError:
-		b.raiseError(msg.err)
-		return b, b.stopLoading()
-	case downloadDoneMsg:
+	case progressDoneMsg:
 		b.newState(downloadDoneState)
 		return b, b.stopLoading()
 	case progress.FrameMsg:
@@ -774,7 +768,6 @@ func (b *statefulBubble) updateDownloadDone(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return b, tea.Batch(
 				b.startLoading(),
 				b.downloadChapter(chapter),
-				b.waitForChapterDownload(),
 				b.waitForProgress(),
 				b.progressC.SetPercent(0),
 			)

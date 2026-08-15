@@ -8,9 +8,12 @@ import (
 
 // PagesOf given source.Chapter
 func (s *Scraper) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
+	s.mu.Lock()
 	if pages, ok := s.pages[chapter.URL]; ok {
+		s.mu.Unlock()
 		return pages, nil
 	}
+	s.mu.Unlock()
 
 	ctx := colly.NewContext()
 	ctx.Put("chapter", chapter)
@@ -22,5 +25,7 @@ func (s *Scraper) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
 
 	s.pagesCollector.Wait()
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.pages[chapter.URL], nil
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/yukiteruamano/koma/util"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -37,14 +38,9 @@ type chapterDownloadResult struct {
 	err     error
 }
 
-// downloadError reports a fatal download error (stop-on-error mode).
-type downloadError struct {
-	err error
-}
-
-// downloadDoneMsg delays the transition to the done state until the progress
-// bar has rendered to the end.
-type downloadDoneMsg struct{}
+// progressDoneMsg is delivered when the whole download batch finishes, so a
+// pending waitForProgress command can terminate instead of leaking.
+type progressDoneMsg struct{}
 
 type statefulBubble struct {
 	state         state
@@ -78,8 +74,9 @@ type statefulBubble struct {
 	fetchedAnilistMangasChannel chan []*anilist.Manga
 	closestAnilistMangaChannel  chan *anilist.Manga
 	chapterReadChannel          chan struct{}
-	chapterDownloadChannel      chan chapterDownloadResult
 	progressChannel             chan progressMsg
+	progressDone                chan struct{}
+	progressDoneOnce            sync.Once
 	errorChannel                chan error
 
 	progressStatus string
@@ -206,8 +203,8 @@ func newBubble() *statefulBubble {
 		fetchedAnilistMangasChannel: make(chan []*anilist.Manga),
 		closestAnilistMangaChannel:  make(chan *anilist.Manga),
 		chapterReadChannel:          make(chan struct{}),
-		chapterDownloadChannel:      make(chan chapterDownloadResult, 8),
 		progressChannel:             make(chan progressMsg, 32),
+		progressDone:                make(chan struct{}),
 		errorChannel:                make(chan error, 8),
 
 		selectedProviders:  make(map[*provider.Provider]struct{}),
