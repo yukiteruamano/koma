@@ -48,10 +48,6 @@ func init() {
 			sources = append(sources, p.Name)
 		}
 
-		for _, p := range provider.Customs() {
-			sources = append(sources, p.Name)
-		}
-
 		return sources, cobra.ShellCompDirectiveDefault
 	}))
 	lo.Must0(viper.BindPFlag(key.DownloaderDefaultSources, rootCmd.PersistentFlags().Lookup("source")))

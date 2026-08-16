@@ -53,7 +53,7 @@ func (f *Field) MarshalJSON() ([]byte, error) {
 		Type        string `json:"type"`
 	}{
 		Key:         f.Key,
-		Value:       viper.Get(f.Key),
+		Value:       MaskSecret(f.Key, viper.Get(f.Key)),
 		Default:     f.Value,
 		Description: f.Description,
 		Type:        f.typeName(),
@@ -62,13 +62,22 @@ func (f *Field) MarshalJSON() ([]byte, error) {
 	return json.Marshal(field)
 }
 
+// MaskSecret masks credential values (anilist secret/code) in config output.
+func MaskSecret(fieldKey string, value any) any {
+	switch fieldKey {
+	case key.AnilistSecret, key.AnilistCode:
+		return "***"
+	}
+	return value
+}
+
 var prettyTemplate = lo.Must(template.New("pretty").Funcs(template.FuncMap{
 	"faint":  style.Faint,
 	"bold":   style.Bold,
 	"purple": style.Fg(color.Purple),
 	"blue":   style.Fg(color.Blue),
 	"cyan":   style.Fg(color.Cyan),
-	"value":  func(k string) any { return viper.Get(k) },
+	"value":  func(k string) any { return MaskSecret(k, viper.Get(k)) },
 	"hl": func(v any) string {
 		switch value := v.(type) {
 		case bool:
@@ -205,8 +214,7 @@ Do no turn it off unless you have some issues`,
 		key.DownloaderDefaultSources,
 		[]string{},
 		`Default sources to use.
-Will prompt if not set.
-Type "koma sources list" to show available sources`,
+Will prompt if not set.`,
 	},
 	{
 		key.DownloaderStopOnError,
@@ -349,26 +357,6 @@ Use "any" to show all languages`,
 		key.MangadexRequestDelay,
 		200,
 		"Delay between MangaDex API requests in milliseconds (0 to disable)",
-	},
-	{
-		key.InstallerUser,
-		"metafates",
-		"Custom scrapers repository owner",
-	},
-	{
-		key.InstallerRepo,
-		"mangal-scrapers",
-		"Custom scrapers repository name",
-	},
-	{
-		key.InstallerBranch,
-		"main",
-		"Custom scrapers repository branch",
-	},
-	{
-		key.GenAuthor,
-		"",
-		"Key to use in generated scrapers as author",
 	},
 	{
 		key.LogsWrite,

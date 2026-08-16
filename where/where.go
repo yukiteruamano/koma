@@ -49,12 +49,6 @@ func Config() string {
 	return mkdir(path)
 }
 
-// Sources path
-// Will create the directory if it doesn't exist
-func Sources() string {
-	return mkdir(filepath.Join(Config(), "sources"))
-}
-
 func AnilistBinds() string {
 	return filepath.Join(Config(), "anilist.json")
 }

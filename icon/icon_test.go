@@ -9,7 +9,7 @@ import (
 
 func TestGet(t *testing.T) {
 	Convey("Given a icon", t, func() {
-		i := Lua
+		i := Fail
 		Convey("When getting the icon with emoji setting", func() {
 			viper.Set(key.IconsVariant, emoji)
 			result := Get(i)

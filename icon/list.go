@@ -8,9 +8,7 @@ import (
 type Icon int
 
 const (
-	Lua Icon = iota + 1
-	Go
-	Fail
+	Fail Icon = iota + 1
 	Success
 	Question
 	Mark
@@ -21,20 +19,6 @@ const (
 )
 
 var icons = map[Icon]*iconDef{
-	Lua: {
-		emoji:   "🌙",
-		nerd:    style.Fg(color.Blue)("\uE620"),
-		plain:   style.Fg(color.Blue)("Lua"),
-		kaomoji: style.Fg(color.Blue)("(=^･ω･^=)"),
-		squares: style.Fg(color.Blue)("◧"),
-	},
-	Go: {
-		emoji:   "🐹",
-		nerd:    style.Fg(color.Cyan)("\uE627"),
-		plain:   style.Fg(color.Cyan)("Go"),
-		kaomoji: style.Fg(color.Cyan)("ʕ •ᴥ• ʔ"),
-		squares: style.Fg(color.Cyan)("◨"),
-	},
 	Fail: {
 		emoji:   "💀",
 		nerd:    style.Fg(color.Red)("ﮊ"),

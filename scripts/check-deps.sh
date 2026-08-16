@@ -92,7 +92,7 @@ direct="$(go mod edit -json | awk -F'"' '
 
 # Dependencies with no newer upstream release. They are frozen/abandoned and
 # should be watched for security or functional issues.
-frozen="github.com/darylhjd/mangodex github.com/ka-weihe/fast-levenshtein github.com/metafates/gache github.com/metafates/mangal-lua-libs github.com/ivanpirog/coloredcobra github.com/dustin/go-humanize github.com/muesli/reflow"
+frozen="github.com/darylhjd/mangodex github.com/ka-weihe/fast-levenshtein github.com/metafates/gache github.com/ivanpirog/coloredcobra github.com/dustin/go-humanize github.com/muesli/reflow"
 
 # Up-to-date direct dependencies (no update available).
 uptodate="$(printf '%s\n' "$direct" | awk '{print $1}' | sort -u)"

@@ -23,7 +23,6 @@ type whereTarget struct {
 var wherePaths = []*whereTarget{
 	{"Downloads", where.Downloads, "downloads", mo.Some("d"), false},
 	{"Config", where.Config, "config", mo.Some("c"), false},
-	{"Sources", where.Sources, "sources", mo.Some("s"), false},
 	{"Logs", where.Logs, "logs", mo.Some("l"), false},
 	{"Cache", where.Cache, "cache", mo.None[string](), true},
 	{"Temp", where.Temp, "temp", mo.None[string](), true},

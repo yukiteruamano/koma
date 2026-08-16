@@ -3,7 +3,7 @@ package key
 // DefinedFieldsCount is the number of fields defined in this package.
 // You have to manually update this number when you add a new field
 // to check later if every field has a defined default value
-const DefinedFieldsCount = 60
+const DefinedFieldsCount = 56
 
 const (
 	DownloaderPath                = "downloader.path"
@@ -90,16 +90,6 @@ const (
 	TUIShowURLs           = "tui.show_urls"
 	TUIShowDownloadedPath = "tui.show_downloaded_path"
 	TUIReverseChapters    = "tui.reverse_chapters"
-)
-
-const (
-	InstallerUser   = "installer.user"
-	InstallerRepo   = "installer.repo"
-	InstallerBranch = "installer.branch"
-)
-
-const (
-	GenAuthor = "gen.author"
 )
 
 const (

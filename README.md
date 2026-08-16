@@ -30,15 +30,12 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
-- [Custom scrapers](#custom-scrapers)
 - [Anilist](#anilist)
 - [Honorable mentions](#honorable-mentions)
 
 ## Features
 
-- __Lua Scrapers!!!__ You can add any source you want by creating your own _(or using someone's else)_ scraper with
-  __Lua 5.1__. See [mangal-scrapers repository](https://github.com/metafates/mangal-scrapers)
-- __3 Built-in sources__ - [MangaDex](https://mangadex.org), [Mangapill](https://mangapill.com) & [WeebCentral](https://weebcentral.com). Additional sources via Lua scrapers
+- __3 Built-in sources__ - [MangaDex](https://mangadex.org), [Mangapill](https://mangapill.com) & [WeebCentral](https://weebcentral.com)
 - __Download & Read Manga__ - I mean, it would be strange if you couldn't, right?
 - __Caching__ - Koma will cache as much data as possible, so you don't have to wait for it to download the same data over and over again.
 - __4 Different export formats__ - PDF, CBZ, ZIP and plain images
@@ -46,7 +43,7 @@
 - __Scriptable__ - You can use Koma in your scripts, it's just a CLI app after all. [Examples](https://github.com/yukiteruamano/koma)
 - __History__ - Resume your reading from where you left off!
 - __Fast?__ - YES.
-- __Monolith__ - ZERO runtime dependencies. Even Lua is built in. Easy to install and use.
+- __Monolith__ - ZERO runtime dependencies. Easy to install and use.
 - __Cross-Platform__ - Linux, macOS, Windows, Termux, even your toaster. (¬‿¬ )
 - __Anilist integration__ - Koma will collect additional data from Anilist and use it to improve your reading experience. It can also sync your progress!
 
@@ -241,35 +238,6 @@ Download and network behavior can be tuned through the following config keys
 
 Set them with `koma config set downloader.concurrency 8`.
 
-## Custom scrapers
-
-TLDR; To browse and install a custom scraper
-from [mangal-scrapers repository](https://github.com/metafates/mangal-scrapers) run
-
-    koma sources install
-
-Koma has a Lua5.1 VM built-in + some useful libraries, such as headless chrome, http client, html parser and so on...
-
-Check the [defined modules](https://github.com/metafates/mangal-lua-libs) for more information.
-
-For scrapers examples, check the [mangal-scrapers repository](https://github.com/metafates/mangal-scrapers)
-
-### Creating a custom scraper
-
-This command will create `example.lua` file in the `koma where --sources` directory.
-
-    koma sources gen --name example --url https://example.com
-
-Open the file and edit it as you wish.
-Take a look at the comments for more information.
-See [mangal-scrapers repository](https://github.com/metafates/mangal-scrapers) for examples.
-
-You can test it by running `koma run <filepath>`
-
-It should automatically appear in the list of available scrapers.
-
-> New to Lua? [Quick start guide](https://learnxinyminutes.com/docs/lua/)
-
 ## Anilist
 
 Koma also supports integration with Anilist.
@@ -296,7 +264,6 @@ This fork includes the following changes compared to the original [metafates/man
 - Fixed nil pointer panic during chapter download (#135)
 - Fixed empty volume folders when downloading CBZ (#183)
 - Fixed long vertical pages clipped in PDF export (#192)
-- Fixed headless browser memory leak in Lua scrapers (#171)
 - Fixed TUI spinner not animating during loading
 - Fixed "Anilsit" typo in Anilist integration (#209)
 
@@ -308,21 +275,19 @@ This fork includes the following changes compared to the original [metafates/man
 - `downloader.escape_whitespace` option to control filename whitespace handling (#159)
 
 ### Removed
-- Manganelo and Manganato built-in scrapers (domains defunct, Cloudflare-blocked). Use Lua scrapers for alternative sources.
+- Manganelo and Manganato built-in scrapers (domains defunct, Cloudflare-blocked)
 
 ## Roadmap
 
 Planned for future releases:
 
 - [ ] Inline mode output directory override (#186)
-- [ ] Add new manga sources (WeebCentral, etc.)
-- [ ] Headless browser support for built-in scrapers (enables Cloudflare-protected sites)
-- [ ] GitHub Releases with GoReleaser
-- [ ] Homebrew tap
-- [ ] Docker image
+- [x] Add new manga sources (WeebCentral, etc.)
+- [x] GitHub Releases with GoReleaser
+- [x] Homebrew tap
+- [x] Docker image
 - [x] Go module path migration from `metafates/mangal` to `yukiteruamano/koma`
 - [ ] Modernize TUI interface
-- [ ] Updated Lua scraper documentation and examples
 
 ## Honorable mentions
 
@@ -343,7 +308,6 @@ Planned for future releases:
 
 - [bubbletea](https://github.com/charmbracelet/bubbletea), [bubbles](https://github.com/charmbracelet/bubbles)
   & [lipgloss](https://github.com/charmbracelet/lipgloss) - TUI framework
-- [gopher-lua](https://github.com/yuin/gopher-lua) - Lua VM for custom scrapers
 - [cobra](https://github.com/spf13/cobra) and [viper](https://github.com/spf13/viper) - CLI & config
 - [pdfcpu](https://github.com/pdfcpu/pdfcpu) - PDF processor in pure Go
 - _And many others!_

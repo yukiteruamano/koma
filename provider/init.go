@@ -8,8 +8,6 @@ import (
 	"github.com/yukiteruamano/koma/source"
 )
 
-const CustomProviderExtension = ".lua"
-
 var builtinProviders = []*Provider{
 	{
 		ID:   mangadex.ID,

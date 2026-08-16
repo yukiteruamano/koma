@@ -12,7 +12,7 @@ type Source interface {
 }
 
 // CloseSource closes the source if it implements io.Closer.
-// This is used to clean up resources such as Lua states and headless browsers.
+// This is used to clean up resources such as HTTP clients.
 func CloseSource(src Source) {
 	if closer, ok := src.(io.Closer); ok {
 		_ = closer.Close()
