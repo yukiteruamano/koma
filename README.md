@@ -58,12 +58,6 @@ Download the latest release for your platform from the [Releases page](https://g
 3. Open Command Prompt or PowerShell in that folder
 4. Run `koma.exe`
 
-**Fedora / RHEL:**
-```shell
-sudo rpm -i koma-*-1.x86_64.rpm
-koma
-```
-
 ### Docker
 
 ```shell
