@@ -18,8 +18,6 @@ type Options struct {
 }
 
 type mini struct {
-	width, height int
-
 	state         state
 	statesHistory util.Stack[state]
 
@@ -29,7 +27,6 @@ type mini struct {
 
 	cachedMangas   map[string][]*source.Manga
 	cachedChapters map[string][]*source.Chapter
-	cachedPages    map[string][]*source.Page
 
 	query            string
 	selectedManga    *source.Manga
@@ -41,7 +38,6 @@ func newMini() *mini {
 		statesHistory:  util.Stack[state]{},
 		cachedMangas:   make(map[string][]*source.Manga),
 		cachedChapters: make(map[string][]*source.Chapter),
-		cachedPages:    make(map[string][]*source.Page),
 	}
 }
 
@@ -82,8 +78,7 @@ func Run(options *Options) error {
 
 	m.download = options.Download
 
-	if w, h, err := util.TerminalSize(); err == nil {
-		m.width, m.height = w, h
+	if w, _, err := util.TerminalSize(); err == nil {
 		truncateAt = w
 	}
 

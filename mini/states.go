@@ -43,9 +43,7 @@ func (m *mini) handleSourceSelectState() error {
 			return err
 		}
 	} else {
-		var providers []*provider.Provider
-		providers = append(providers, provider.Builtins()...)
-		providers = append(providers, provider.Customs()...)
+		providers := provider.Builtins()
 
 		slices.SortFunc(providers, func(a *provider.Provider, b *provider.Provider) int {
 			return strings.Compare(a.String(), b.String())
@@ -91,7 +89,11 @@ func (m *mini) handleMangaSearchState() error {
 
 		erase := progress("Searching Query..")
 		m.cachedMangas[query], err = m.selectedSource.Search(query)
-		max := lo.Min([]int{len(m.cachedMangas[query]), viper.GetInt(key.MiniSearchLimit)})
+		limit := viper.GetInt(key.MiniSearchLimit)
+		if limit < 1 {
+			limit = 1
+		}
+		max := lo.Min([]int{len(m.cachedMangas[query]), limit})
 		m.cachedMangas[query] = m.cachedMangas[query][:max]
 		erase()
 
@@ -122,6 +124,8 @@ func (m *mini) handleMangaSelectState() error {
 	}
 
 	m.selectedManga = p
+	// a new manga was selected: clear previous chapter selections
+	m.selectedChapters = nil
 	m.newState(chapterSelectState)
 	return err
 }
@@ -261,6 +265,8 @@ func (m *mini) handleChapterReadState() error {
 		switch b {
 		case next:
 			c.next <- struct{}{}
+		case prev:
+			c.prev <- struct{}{}
 		case reread:
 			readLoop(chapter, c, hasPrev, hasNext)
 		case back:
@@ -377,16 +383,14 @@ func (m *mini) handleHistorySelectState() error {
 		return nil
 	}
 
-	defaultProviders := provider.Builtins()
-	customProviders := provider.Customs()
-
-	var providers = make([]*provider.Provider, 0)
-	providers = append(providers, defaultProviders...)
-	providers = append(providers, customProviders...)
+	providers := provider.Builtins()
 
 	p, _ := lo.Find(providers, func(p *provider.Provider) bool {
 		return p.ID == c.SourceID
 	})
+	if p == nil {
+		return fmt.Errorf("provider %q not found", c.SourceID)
+	}
 
 	erase := progress("Initializing Source..")
 	s, err := p.CreateSource()
@@ -412,7 +416,24 @@ func (m *mini) handleHistorySelectState() error {
 	}
 
 	m.cachedChapters[manga.URL] = chaps
-	m.selectedChapters = chaps[c.Index-1:]
+
+	if len(chaps) == 0 {
+		fail("No chapters found")
+		m.selectedManga = nil
+		m.newState(historySelectState)
+		return nil
+	}
+
+	// resume from the saved chapter. Indices are 0-based; clamp into the
+	// valid range so a stale/out-of-range history entry cannot panic.
+	index := c.Index
+	if index < 0 {
+		index = 0
+	}
+	if index >= len(chaps) {
+		index = len(chaps) - 1
+	}
+	m.selectedChapters = chaps[index:]
 
 	m.newState(chapterReadState)
 	return nil

@@ -62,7 +62,7 @@ func menu[T fmt.Stringer](items []T, options ...*bind) (*bind, T, error) {
 		if err != nil {
 			return isValidOption(s)
 		}
-		return 0 < num && int(num-1) < len(items)+1
+		return 0 < num && int(num-1) < len(items)
 	})
 
 	var t T
