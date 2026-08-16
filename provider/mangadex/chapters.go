@@ -102,7 +102,13 @@ func (m *Mangadex) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 	var deduplicated []chapterCandidate
 
 	for _, c := range candidates {
-		dedupKey := c.volume + "|" + c.chapter.GetChapterNum()
+		chapterNum := c.chapter.GetChapterNum()
+		dedupKey := c.volume + "|" + chapterNum
+		// unnumbered chapters/one-shots all report "-", so include the
+		// chapter ID to avoid collapsing distinct entries
+		if chapterNum == "-" {
+			dedupKey += "|" + c.chapter.ID
+		}
 
 		if idx, exists := seen[dedupKey]; exists {
 			// Replace the existing entry only if this one is from an official group

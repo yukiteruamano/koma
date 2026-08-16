@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/yukiteruamano/koma/constant"
+	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/source"
 	"net/http"
 	"net/url"
@@ -18,16 +19,10 @@ const (
 	baseURL = "https://weebcentral.com"
 )
 
-type Source struct {
-	client *http.Client
-}
+type Source struct{}
 
 func New() *Source {
-	return &Source{
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-	}
+	return &Source{}
 }
 
 func (s *Source) Name() string { return Name }
@@ -45,7 +40,7 @@ func (s *Source) newRequest(method, url string) (*http.Request, error) {
 }
 
 func (s *Source) fetchDocument(req *http.Request) (*goquery.Document, error) {
-	resp, err := s.client.Do(req)
+	resp, err := network.Do(req)
 	if err != nil {
 		return nil, err
 	}

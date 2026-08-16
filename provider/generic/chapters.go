@@ -10,6 +10,11 @@ import (
 func (s *Scraper) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 	s.mu.Lock()
 	if chapters, ok := s.chapters[manga.URL]; ok {
+		// rehydrate the Manga back-reference for a different Manga instance
+		for _, chapter := range chapters {
+			chapter.Manga = manga
+		}
+		manga.Chapters = chapters
 		s.mu.Unlock()
 		return chapters, nil
 	}
@@ -29,16 +34,16 @@ func (s *Scraper) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 	defer s.mu.Unlock()
 
 	if s.config.ReverseChapters {
-		// reverse chapters
+		// reverse chapters; indices stay 0-based like every other provider
 		chapters := s.chapters[manga.URL]
 		reversed := make([]*source.Chapter, len(chapters))
 		for i, chapter := range chapters {
 			reversed[len(chapters)-i-1] = chapter
 			chapter.Index = uint16(len(chapters) - i - 1)
-			chapter.Index++
 		}
 
 		s.chapters[manga.URL] = reversed
+		manga.Chapters = reversed
 	}
 
 	return s.chapters[manga.URL], nil

@@ -51,7 +51,7 @@ func New(conf *Configuration) source.Source {
 			manga := source.Manga{
 				Name:     s.config.MangaExtractor.Name(selection),
 				URL:      url,
-				Index:    uint16(e.Index),
+				Index:    uint16(i),
 				Chapters: make([]*source.Chapter, 0),
 				ID:       filepath.Base(url),
 				Source:   &s,
@@ -95,7 +95,7 @@ func New(conf *Configuration) source.Source {
 			chapter := source.Chapter{
 				Name:   s.config.ChapterExtractor.Name(selection),
 				URL:    url,
-				Index:  uint16(e.Index),
+				Index:  uint16(i),
 				Pages:  make([]*source.Page, 0),
 				ID:     filepath.Base(url),
 				Manga:  manga,

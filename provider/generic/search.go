@@ -1,6 +1,8 @@
 package generic
 
 import (
+	"fmt"
+
 	"github.com/yukiteruamano/koma/source"
 )
 
@@ -24,5 +26,12 @@ func (s *Scraper) Search(query string) ([]*source.Manga, error) {
 	s.mangasCollector.Wait()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.mangas[address], nil
+
+	urls, ok = s.mangas[address]
+	if !ok {
+		// the request may have been redirected and stored under a different key
+		return nil, fmt.Errorf("no search results for %q", query)
+	}
+
+	return urls, nil
 }

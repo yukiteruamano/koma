@@ -31,8 +31,6 @@ type Configuration struct {
 	// ReverseChapters if true, chapters will be shown in reverse order
 	ReverseChapters bool
 
-	// BaseURL of the source
-	BaseURL string
 	// GenerateSearchURL function to create search URL from the query.
 	// E.g. "one piece" -> "https://manganelo.com/search/story/one%20piece"
 	GenerateSearchURL func(query string) string

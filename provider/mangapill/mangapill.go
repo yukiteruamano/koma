@@ -14,7 +14,6 @@ var Config = &generic.Configuration{
 	Delay:           50 * time.Millisecond,
 	Parallelism:     50,
 	ReverseChapters: true,
-	BaseURL:         "https://mangapill.com",
 	GenerateSearchURL: func(query string) string {
 		query = strings.TrimSpace(query)
 		query = strings.ToLower(query)
