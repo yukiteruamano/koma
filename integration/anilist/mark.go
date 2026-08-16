@@ -21,7 +21,7 @@ mutation ($ID: Int, $progress: Int) {
 `
 
 func (a *Anilist) MarkRead(chapter *source.Chapter) error {
-	if a.token == "" {
+	if a.getToken() == "" {
 		err := a.login()
 		if err != nil {
 			log.Error(err)
@@ -65,7 +65,7 @@ func (a *Anilist) MarkRead(chapter *source.Chapter) error {
 
 	// set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+a.token)
+	req.Header.Set("Authorization", "Bearer "+a.getToken())
 	req.Header.Set("Accept", "application/json")
 
 	// send request

@@ -3,8 +3,10 @@ package version
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/metafates/gache"
 	"github.com/yukiteruamano/koma/filesystem"
+	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/util"
 	"github.com/yukiteruamano/koma/where"
 	"net/http"
@@ -30,12 +32,21 @@ func Latest() (version string, err error) {
 		return ver, nil
 	}
 
-	resp, err := http.Get("https://api.github.com/repos/yukiteruamano/koma/releases/latest")
+	req, err := http.NewRequest(http.MethodGet, "https://api.github.com/repos/yukiteruamano/koma/releases/latest", nil)
 	if err != nil {
-		return
+		return "", err
+	}
+
+	resp, err := network.Do(req)
+	if err != nil {
+		return "", err
 	}
 
 	defer util.Ignore(resp.Body.Close)
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("github api returned %d", resp.StatusCode)
+	}
 
 	var release struct {
 		TagName string `json:"tag_name"`

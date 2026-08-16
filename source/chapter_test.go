@@ -179,6 +179,20 @@ func TestChapterFormattedName(t *testing.T) {
 	}
 }
 
+func TestChapterFormattedNameNilManga(t *testing.T) {
+	setTestConfig(constant.FormatPDF)
+	viper.Set(key.DownloaderChapterNameTemplate, "{manga} - {chapter} [{index}] from {source}")
+
+	// a chapter loaded from a cache may have a nil Manga back-reference;
+	// formatting must not panic
+	chapter := &Chapter{Name: "orphan", Index: 1}
+
+	got := chapter.formattedName()
+	if got != " - orphan [1] from " {
+		t.Errorf("formattedName() = %q, want %q", got, " - orphan [1] from ")
+	}
+}
+
 func TestChapterComicInfoFields(t *testing.T) {
 	setTestConfig(constant.FormatPDF)
 	viper.Set(key.MetadataComicInfoXMLAddDate, false)

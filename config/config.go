@@ -46,6 +46,8 @@ func setName() {
 
 func setFs() {
 	viper.SetFs(filesystem.Api())
+	// the config file may hold anilist credentials, keep it private
+	viper.SetConfigPermissions(0o600)
 }
 
 // setPaths sets the paths to the config files

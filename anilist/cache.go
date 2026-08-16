@@ -88,7 +88,7 @@ func (c *cacher[K, T]) Delete(key K) error {
 		return err
 	}
 
-	if !expired {
+	if !expired && data != nil {
 		delete(data.Mangas, c.keyWrapper(key))
 		return c.internal.Set(data)
 	}
@@ -100,6 +100,7 @@ var relationCacher = &cacher[string, int]{
 	internal: gache.New[*cacheData[string, int]](
 		&gache.Options{
 			Path:       where.AnilistBinds(),
+			Lifetime:   time.Hour * 24 * 30,
 			FileSystem: &filesystem.GacheFs{},
 		},
 	),

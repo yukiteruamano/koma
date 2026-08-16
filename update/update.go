@@ -31,7 +31,7 @@ func Metadata(mangaPath string) error {
 	// will set new metadata from anilist
 	err = manga.PopulateMetadata(func(string) {})
 	if err != nil {
-		log.Error()
+		log.Error(err)
 		return err
 	}
 
@@ -103,64 +103,16 @@ func Metadata(mangaPath string) error {
 	log.Infof("updating ComicInfo.xml for %d chapters", len(manga.Chapters))
 	for _, chapter := range manga.Chapters {
 		path := chaptersPaths[chapter]
-		file, err := filesystem.Api().Open(path)
-		if err != nil {
+
+		// extract the pages into memory (memmap fs), then restore the OS fs
+		// before rewriting the archive on disk
+		if err := extractChapterPages(chapter, path); err != nil {
 			log.Error(err)
 			continue
 		}
-
-		stat, err := file.Stat()
-		if err != nil {
-			_ = file.Close()
-			continue
-		}
-
-		// go to memmap fs to unzip; restore the OS fs on every exit path
-		filesystem.SetMemMapFs()
-		defer filesystem.SetOsFs()
-
-		err = util.Unzip(file, stat.Size(), chapter.Name)
-		if err != nil {
-			log.Error(err)
-			_ = file.Close()
-			continue
-		}
-
-		// add pages before converting back to cbz
-		files, err := filesystem.Api().ReadDir(chapter.Name)
-		if err != nil {
-			log.Error(err)
-			_ = file.Close()
-			continue
-		}
-
-		for _, file := range files {
-			// skip ComicInfo.xml
-			if strings.HasSuffix(file.Name(), ".xml") {
-				continue
-			}
-
-			image, err := filesystem.Api().ReadFile(filepath.Join(chapter.Name, file.Name()))
-			// we can not let some pages be gone
-			// so if we can't open any - whole process should stop
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-
-			chapter.Pages = append(chapter.Pages, &source.Page{
-				Chapter:   chapter,
-				Size:      uint64(file.Size()),
-				Index:     uint16(len(chapter.Pages)),
-				Extension: filepath.Ext(file.Name()),
-				Contents:  bytes.NewBuffer(image),
-			})
-		}
-
-		_ = file.Close()
 
 		log.Debugf("removing old %s", path)
-		err = filesystem.Api().Remove(path)
+		err := filesystem.Api().Remove(path)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -172,6 +124,58 @@ func Metadata(mangaPath string) error {
 			log.Error(err)
 			return err
 		}
+
+		// pages are no longer needed once the archive is rewritten
+		chapter.Release()
+	}
+
+	return nil
+}
+
+// extractChapterPages unzips a chapter into the memory filesystem and loads its
+// page contents into memory. The OS filesystem is restored on every exit path.
+func extractChapterPages(chapter *source.Chapter, path string) error {
+	file, err := filesystem.Api().Open(path)
+	if err != nil {
+		return err
+	}
+	defer util.Ignore(file.Close)
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	filesystem.SetMemMapFs()
+	defer filesystem.SetOsFs()
+
+	if err := util.Unzip(file, stat.Size(), chapter.Name); err != nil {
+		return err
+	}
+
+	files, err := filesystem.Api().ReadDir(chapter.Name)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		// skip ComicInfo.xml
+		if strings.HasSuffix(file.Name(), ".xml") {
+			continue
+		}
+
+		image, err := filesystem.Api().ReadFile(filepath.Join(chapter.Name, file.Name()))
+		if err != nil {
+			return err
+		}
+
+		chapter.Pages = append(chapter.Pages, &source.Page{
+			Chapter:   chapter,
+			Size:      uint64(file.Size()),
+			Index:     uint16(len(chapter.Pages)),
+			Extension: filepath.Ext(file.Name()),
+			Contents:  bytes.NewBuffer(image),
+		})
 	}
 
 	return nil

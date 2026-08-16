@@ -152,17 +152,27 @@ func (c *Chapter) downloadAll(download func(*Page) error, temp bool, progress fu
 func (c *Chapter) formattedName() (name string) {
 	template := viper.GetString(key.DownloaderChapterNameTemplate)
 
+	// a chapter loaded from a cache may have a nil Manga back-reference
+	var (
+		mangaName   string
+		chaptersNum int
+	)
+	if c.Manga != nil {
+		mangaName = c.Manga.Name
+		chaptersNum = len(c.Manga.Chapters)
+	}
+
 	var sourceName string
-	if c.Source() != nil {
-		sourceName = c.Source().Name()
+	if c.Manga != nil && c.Manga.Source != nil {
+		sourceName = c.Manga.Source.Name()
 	}
 
 	// Ordered, single-style replacements without a per-call map.
-	name = strings.ReplaceAll(template, "{manga}", c.Manga.Name)
+	name = strings.ReplaceAll(template, "{manga}", mangaName)
 	name = strings.ReplaceAll(name, "{chapter}", c.Name)
 	name = strings.ReplaceAll(name, "{index}", strconv.Itoa(int(c.Index)))
 	name = strings.ReplaceAll(name, "{padded-index}", fmt.Sprintf("%04d", c.Index))
-	name = strings.ReplaceAll(name, "{chapters-count}", strconv.Itoa(len(c.Manga.Chapters)))
+	name = strings.ReplaceAll(name, "{chapters-count}", strconv.Itoa(chaptersNum))
 	name = strings.ReplaceAll(name, "{volume}", c.Volume)
 	name = strings.ReplaceAll(name, "{source}", sourceName)
 
@@ -237,6 +247,9 @@ func (c *Chapter) Release() {
 }
 
 func (c *Chapter) Source() Source {
+	if c.Manga == nil {
+		return nil
+	}
 	return c.Manga.Source
 }
 

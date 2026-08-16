@@ -85,7 +85,7 @@ func (a *Anilist) login() error {
 
 	// set token
 	log.Info("Logged in Anilist")
-	a.token = response.AccessToken
+	a.setToken(response.AccessToken)
 
 	return nil
 }

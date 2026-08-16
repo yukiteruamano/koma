@@ -15,6 +15,9 @@ func (g *Cache[T]) load() error {
 		return err
 	}
 
+	// clean up a leftover temp file from a crashed save
+	_ = g.options.FileSystem.Remove(g.options.Path + ".tmp")
+
 	file, err := g.options.FileSystem.OpenFile(g.options.Path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err

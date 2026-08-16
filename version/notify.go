@@ -19,11 +19,15 @@ func Notify() {
 	erase := util.PrintErasable(fmt.Sprintf("%s Checking if new version is available...", icon.Get(icon.Progress)))
 	version, err := Latest()
 	erase()
-	if err == nil {
-		comp, err := Compare(version, constant.Version)
-		if err == nil && comp <= 0 {
-			return
-		}
+
+	// on failure do not print an empty "new version" banner
+	if err != nil {
+		return
+	}
+
+	comp, err := Compare(version, constant.Version)
+	if err != nil || comp <= 0 {
+		return
 	}
 
 	fmt.Printf(`

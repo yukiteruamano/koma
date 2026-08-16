@@ -24,6 +24,7 @@ func TestParseMangaPicker(t *testing.T) {
 		{name: "last", description: "last", wantName: "c"},
 		{name: "exact match", description: "exact", wantName: "b", query: "b"},
 		{name: "index 1", description: "1", wantName: "b"},
+		{name: "large index clamps", description: "999999", wantName: "c"},
 		{name: "invalid pattern", description: "bogus", wantErr: true},
 	}
 
@@ -136,6 +137,7 @@ func TestParseChaptersFilter(t *testing.T) {
 		{name: "all", description: "all", wantCount: 4},
 		{name: "range 2-3", description: "2-3", wantCount: 2},
 		{name: "single 1", description: "1", wantCount: 1},
+		{name: "large range clamps", description: "1-999999", wantCount: 3},
 		{name: "substring", description: "@Chapter 2@", wantCount: 1},
 		{name: "invalid", description: "nonsense", wantErr: true},
 	}

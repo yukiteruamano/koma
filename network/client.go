@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"net"
 	"net/http"
@@ -97,7 +98,7 @@ func Do(req *http.Request) (*http.Response, error) {
 		// Retry rate-limited and server-error responses.
 		if retryable && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500) {
 			_ = resp.Body.Close()
-			lastErr = errors.New("http error: " + resp.Status)
+			lastErr = fmt.Errorf("http error: %s (%d)", resp.Status, resp.StatusCode)
 			continue
 		}
 

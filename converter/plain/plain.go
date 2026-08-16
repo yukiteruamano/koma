@@ -66,6 +66,5 @@ func savePage(page *source.Page, to string) error {
 		return err
 	}
 
-	_ = page.Close()
 	return nil
 }

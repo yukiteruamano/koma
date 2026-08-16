@@ -168,7 +168,13 @@ func (m *Manga) DownloadCover(overwrite bool, path string, progress func(string)
 	}
 
 	var extension string
-	if extension = filepath.Ext(cover); extension == "" {
+	// strip query string / fragment from the URL before taking the extension,
+	// otherwise "cover.jpg?w=400" would become the filename
+	clean := cover
+	if idx := strings.IndexAny(clean, "?#"); idx >= 0 {
+		clean = clean[:idx]
+	}
+	if extension = filepath.Ext(clean); extension == "" {
 		extension = ".jpg"
 	}
 

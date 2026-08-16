@@ -63,7 +63,7 @@ func ParseMangaPicker(query, description string) (MangaPicker, error) {
 
 			return nil
 		default:
-			index := lo.Must(strconv.ParseUint(description, 10, 16))
+			index := lo.Must(strconv.ParseUint(description, 10, 64))
 			return mangas[util.Min(index, uint64(len(mangas)-1))]
 		}
 	}, nil
@@ -107,7 +107,7 @@ func ParseChaptersFilter(description string) (ChaptersFilter, error) {
 				}), nil
 			}
 
-			from := lo.Must(strconv.ParseUint(groups[from], 10, 16))
+			from := lo.Must(strconv.ParseUint(groups[from], 10, 64))
 
 			n := groups[to]
 			if n == "" {
@@ -117,7 +117,7 @@ func ParseChaptersFilter(description string) (ChaptersFilter, error) {
 				return []*source.Chapter{chapters[from]}, nil
 			}
 
-			to := lo.Must(strconv.ParseUint(n, 10, 16))
+			to := lo.Must(strconv.ParseUint(n, 10, 64))
 
 			// clamp both bounds into the valid range to avoid slicing panics
 			last := uint64(len(chapters) - 1)

@@ -1,17 +1,32 @@
 package anilist
 
 import (
+	"sync"
+
 	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/key"
 )
 
 type Anilist struct {
-	token string
+	tokenMu sync.RWMutex
+	token   string
 }
 
 // New cereates a new Anilist integration instance
 func New() *Anilist {
 	return &Anilist{}
+}
+
+func (a *Anilist) getToken() string {
+	a.tokenMu.RLock()
+	defer a.tokenMu.RUnlock()
+	return a.token
+}
+
+func (a *Anilist) setToken(token string) {
+	a.tokenMu.Lock()
+	defer a.tokenMu.Unlock()
+	a.token = token
 }
 
 func (a *Anilist) id() string {

@@ -147,23 +147,6 @@ func (p *Page) DownloadTo(path string) error {
 	return nil
 }
 
-// Close closes the page contents.
-func (p *Page) Close() error {
-	return nil
-}
-
-// Read reads from the page contents.
-func (p *Page) Read(b []byte) (int, error) {
-	log.Tracef("Reading page contents #%d", p.Index)
-	if p.Contents == nil {
-		err := errors.New("page not downloaded")
-		log.Error(err)
-		return 0, err
-	}
-
-	return p.Contents.Read(b)
-}
-
 // Filename generates a filename for the page.
 func (p *Page) Filename() (filename string) {
 	filename = fmt.Sprintf("%d%s", p.Index, p.Extension)
