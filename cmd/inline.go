@@ -216,9 +216,7 @@ var inlineAnilistGetCmd = &cobra.Command{
 
 		name := lo.Must(cmd.Flags().GetString("name"))
 		m, err = anilist.FindClosest(name)
-
 		if err != nil {
-			m, err = anilist.FindClosest(name)
 			handleErr(err)
 		}
 

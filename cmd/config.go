@@ -108,10 +108,6 @@ func init() {
 
 	configSetCmd.Flags().StringSliceP("value", "v", []string{}, "The value to set")
 	lo.Must0(configSetCmd.MarkFlagRequired("value"))
-
-	// deprecated flags for backwards compatibility
-	configSetCmd.Flags().BoolP("bool", "b", false, "Set the value type to bool")
-	configSetCmd.Flags().IntP("int", "i", 0, "Set the value type to int")
 }
 
 var configSetCmd = &cobra.Command{
@@ -189,7 +185,7 @@ var configGetCmd = &cobra.Command{
 			handleErr(errUnknownKey(key))
 		}
 
-		fmt.Println(viper.Get(key))
+		fmt.Println(config.MaskSecret(key, viper.Get(key)))
 	},
 }
 

@@ -24,9 +24,9 @@ func PadZero(s string, l int) string {
 
 // replacers is a list of regexp.Regexp pairs that will be used to sanitize filenames.
 var replacers = []lo.Tuple2[*regexp.Regexp, string]{
-	{regexp.MustCompile(`[\\/<>:;"'|?!*{}#%&^+,~]`), "_"},
-	{regexp.MustCompile(`__+`), "_"},
-	{regexp.MustCompile(`^[_\-.]+|[_\-.]+$`), ""},
+	{A: regexp.MustCompile(`[\\/<>:;"'|?!*{}#%&^+,~]`), B: "_"},
+	{A: regexp.MustCompile(`__+`), B: "_"},
+	{A: regexp.MustCompile(`^[_\-.]+|[_\-.]+$`), B: ""},
 }
 
 // whitespace is hoisted so SanitizeFilename does not recompile a regexp on every call.
@@ -39,6 +39,11 @@ func SanitizeFilename(filename string) string {
 	}
 	for _, re := range replacers {
 		filename = re.A.ReplaceAllString(filename, re.B)
+	}
+
+	if filename == "" {
+		// e.g. names made only of dots/slashes sanitize to nothing
+		filename = "untitled"
 	}
 
 	return filename

@@ -39,9 +39,3 @@ func (s *Stack[T]) Peek() T {
 func (s *Stack[T]) Len() int {
 	return s.length
 }
-
-// Clear removes all items from the stack.
-func (s *Stack[T]) Clear() {
-	s.items = nil
-	s.length = 0
-}

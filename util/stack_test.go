@@ -38,15 +38,4 @@ func TestStack(t *testing.T) {
 			t.Errorf("Len = %d, want 2 after peek", stack.Len())
 		}
 	})
-
-	t.Run("clear empties", func(t *testing.T) {
-		stack := Stack[int]{}
-		stack.Push(1)
-		stack.Push(2)
-		stack.Clear()
-
-		if stack.Len() != 0 {
-			t.Errorf("Len = %d, want 0 after Clear", stack.Len())
-		}
-	})
 }

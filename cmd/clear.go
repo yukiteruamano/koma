@@ -5,7 +5,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/spf13/cobra"
-	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/icon"
 	"github.com/yukiteruamano/koma/util"
 	"github.com/yukiteruamano/koma/where"
@@ -55,7 +54,6 @@ var clearCmd = &cobra.Command{
 				_ = util.Delete(target.location())
 				e()
 				fmt.Printf("%s %s cleared\n", icon.Get(icon.Success), util.Capitalize(target.name))
-				handleErr(filesystem.Api().RemoveAll(target.location()))
 			}
 		}
 
