@@ -6,8 +6,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/source"
 )
+
+func init() {
+	filesystem.SetMemMapFs()
+}
 
 func fixtureServer(t *testing.T, path string) *httptest.Server {
 	t.Helper()
@@ -158,5 +163,59 @@ func TestURLID(t *testing.T) {
 				t.Errorf("urlID(%q) = %q, want %q", tt.href, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSearchCacheHitRehydratesSource(t *testing.T) {
+	filesystem.SetMemMapFs()
+
+	first := New()
+	manga := &source.Manga{Name: "Cache Manga", URL: "https://zonatmo.org/library/manga/99999/cache-manga"}
+	if err := first.cache.mangas.Set("cache-query", []*source.Manga{manga}); err != nil {
+		t.Fatalf("cache Set failed: %v", err)
+	}
+
+	// a fresh instance reloads from disk, losing the Manga.Source back-reference
+	second := New()
+	mangas, err := second.Search("cache-query")
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+
+	if len(mangas) != 1 {
+		t.Fatalf("got %d mangas, want 1", len(mangas))
+	}
+	if mangas[0].Source != second {
+		t.Error("Manga.Source was not rehydrated from the cache")
+	}
+}
+
+func TestChaptersCacheHitRehydratesManga(t *testing.T) {
+	filesystem.SetMemMapFs()
+
+	first := New()
+	manga := &source.Manga{Name: "Cache Manga", ID: "cache-manga-id", URL: "https://zonatmo.org/library/manga/99999/cache-manga"}
+	chapters := []*source.Chapter{
+		{Name: "Capítulo 1", Manga: manga},
+		{Name: "Capítulo 2", Manga: manga},
+	}
+	if err := first.cache.chapters.Set(manga.ID, chapters); err != nil {
+		t.Fatalf("cache Set failed: %v", err)
+	}
+
+	// a fresh instance reloads from disk, losing the Chapter.Manga back-reference
+	second := New()
+	got, err := second.ChaptersOf(manga)
+	if err != nil {
+		t.Fatalf("ChaptersOf failed: %v", err)
+	}
+
+	if len(got) != 2 {
+		t.Fatalf("got %d chapters, want 2", len(got))
+	}
+	for i, chapter := range got {
+		if chapter.Manga != manga {
+			t.Errorf("chapter %d Manga was not rehydrated from the cache", i)
+		}
 	}
 }

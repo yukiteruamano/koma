@@ -21,10 +21,18 @@ const (
 // baseURL is a var so tests can point the source at a local server.
 var baseURL = "https://zonatmo.org"
 
-type Source struct{}
+type Source struct {
+	cache struct {
+		mangas   *cacher[[]*source.Manga]
+		chapters *cacher[[]*source.Chapter]
+	}
+}
 
 func New() *Source {
-	return &Source{}
+	s := &Source{}
+	s.cache.mangas = newCacher[[]*source.Manga]("zonatmo_mangas")
+	s.cache.chapters = newCacher[[]*source.Chapter]("zonatmo_chapters")
+	return s
 }
 
 func (s *Source) Name() string { return Name }
@@ -60,7 +68,7 @@ func (s *Source) newRequest(method, url string) (*http.Request, error) {
 	}
 	req.Header.Set("User-Agent", constant.UserAgent)
 	req.Header.Set("Accept", "text/html")
-	req.Header.Set("Accept-Language", "en-US")
+	req.Header.Set("Accept-Language", "es-ES,es;q=0.9")
 	return req, nil
 }
 
@@ -79,6 +87,14 @@ func (s *Source) fetchDocument(req *http.Request) (*goquery.Document, error) {
 }
 
 func (s *Source) Search(query string) ([]*source.Manga, error) {
+	if cached, ok := s.cache.mangas.Get(query).Get(); ok {
+		// Manga.Source is json:"-", so rehydrate it after loading from the cache
+		for _, manga := range cached {
+			manga.Source = s
+		}
+		return cached, nil
+	}
+
 	searchURL := fmt.Sprintf("%s/biblioteca?title=%s&_pg=1", baseURL, url.QueryEscape(query))
 
 	req, err := s.newRequest("GET", searchURL)
@@ -121,10 +137,20 @@ func (s *Source) Search(query string) ([]*source.Manga, error) {
 		mangas = append(mangas, manga)
 	})
 
+	_ = s.cache.mangas.Set(query, mangas)
 	return mangas, nil
 }
 
 func (s *Source) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
+	if cached, ok := s.cache.chapters.Get(manga.ID).Get(); ok {
+		// Chapter.Manga is json:"-", so rehydrate it after loading from the cache
+		for _, chapter := range cached {
+			chapter.Manga = manga
+		}
+		manga.Chapters = cached
+		return cached, nil
+	}
+
 	req, err := s.newRequest("GET", manga.URL)
 	if err != nil {
 		return nil, err
@@ -166,6 +192,7 @@ func (s *Source) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 	}
 
 	manga.Chapters = chapters
+	_ = s.cache.chapters.Set(manga.ID, chapters)
 	return chapters, nil
 }
 
