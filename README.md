@@ -4,7 +4,6 @@
 
 <p align="center">
     <img alt="Linux" src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black">
-    <img alt="macOS" src="https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=macos&logoColor=F0F0F0">
     <img alt="Windows" src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white">
     <img alt="Termux" src="https://img.shields.io/badge/Termux-000000?style=for-the-badge&logo=GNOME%20Terminal&logoColor=white">
 </p>
@@ -44,41 +43,20 @@
 - __History__ - Resume your reading from where you left off!
 - __Fast?__ - YES.
 - __Monolith__ - ZERO runtime dependencies. Easy to install and use.
-- __Cross-Platform__ - Linux, macOS, Windows, Termux, even your toaster. (¬‿¬ )
+- __Cross-Platform__ - Linux, Windows, Termux, even your toaster. (¬‿¬ )
 - __Anilist integration__ - Koma will collect additional data from Anilist and use it to improve your reading experience. It can also sync your progress!
 
 ## Installation
 
-### Homebrew (macOS / Linux)
-
-```shell
-brew tap yukiteruamano/homebrew-koma
-brew install koma
-```
-
 ### Pre-compiled binaries
 
 Download the latest release for your platform from the [Releases page](https://github.com/yukiteruamano/koma/releases/latest).
-
-**macOS / Linux:**
-```shell
-# Example for macOS Apple Silicon (arm64)
-tar xzf koma_*_Darwin_arm64.tar.gz
-sudo mv koma /usr/local/bin/
-koma
-```
 
 **Windows:**
 1. Download the `.zip` for your architecture
 2. Extract it
 3. Open Command Prompt or PowerShell in that folder
 4. Run `koma.exe`
-
-**Debian / Ubuntu:**
-```shell
-sudo dpkg -i koma_*_amd64.deb
-koma
-```
 
 **Fedora / RHEL:**
 ```shell
@@ -92,8 +70,6 @@ koma
 docker pull ghcr.io/yukiteruamano/koma:latest
 docker run --rm -ti -v $(pwd)/downloads:/downloads ghcr.io/yukiteruamano/koma
 ```
-
-> **Tip for macOS users:** [OrbStack](https://orbstack.dev/) is a lightweight and fast alternative to Docker Desktop. Install it, then use the same `docker` commands above.
 
 ### From source
 
@@ -132,7 +108,7 @@ GOOS=linux GOARCH=arm64 make build
 
 [Available GOOS and GOARCH combinations](https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63)
 
-### Script (Linux, macOS, Termux)
+### Script (Linux, Termux)
 
 ```shell
 curl -sSL https://raw.githubusercontent.com/yukiteruamano/koma/main/scripts/install | sh
@@ -295,10 +271,9 @@ Planned for future releases:
 - [x] Inline mode output directory override (#186)
 - [x] Add new manga sources (WeebCentral, Zonatmo, etc.)
 - [x] GitHub Releases with GoReleaser
-- [x] Homebrew tap
 - [x] Docker image
 - [x] Go module path migration from `metafates/mangal` to `yukiteruamano/koma`
-- [ ] Modernize TUI interface
+- [x] Modernize TUI interface
 
 ## Honorable mentions
 
