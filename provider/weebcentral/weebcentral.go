@@ -8,6 +8,7 @@ import (
 	"github.com/yukiteruamano/koma/source"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,6 +19,30 @@ const (
 	Name    = "WeebCentral"
 	baseURL = "https://weebcentral.com"
 )
+
+// absoluteURL resolves a possibly-relative href against the site base URL.
+func absoluteURL(href string) string {
+	if href == "" {
+		return href
+	}
+	// protocol-relative, e.g. //cdn.example.com/x
+	if strings.HasPrefix(href, "//") {
+		return "https:" + href
+	}
+	if u, err := url.Parse(href); err == nil && u.IsAbs() {
+		return href
+	}
+	return baseURL + href
+}
+
+// urlID extracts the trailing path segment of a (possibly relative) URL.
+func urlID(href string) string {
+	u, err := url.Parse(absoluteURL(href))
+	if err != nil {
+		return ""
+	}
+	return path.Base(u.Path)
+}
 
 type Source struct{}
 
@@ -90,9 +115,9 @@ func (s *Source) Search(query string) ([]*source.Manga, error) {
 
 		manga := &source.Manga{
 			Name:   name,
-			URL:    href,
+			URL:    absoluteURL(href),
 			Index:  uint16(i),
-			ID:     filepath.Base(href),
+			ID:     urlID(href),
 			Source: s,
 		}
 		manga.Metadata.Cover.ExtraLarge = coverURL
@@ -130,8 +155,8 @@ func (s *Source) ChaptersOf(manga *source.Manga) ([]*source.Chapter, error) {
 
 		chapter := &source.Chapter{
 			Name:  name,
-			URL:   href,
-			ID:    filepath.Base(href),
+			URL:   absoluteURL(href),
+			ID:    urlID(href),
 			Manga: manga,
 		}
 
@@ -193,7 +218,7 @@ func (s *Source) PagesOf(chapter *source.Chapter) ([]*source.Page, error) {
 		ext = strings.Split(ext, "?")[0]
 
 		page := &source.Page{
-			URL:       src,
+			URL:       absoluteURL(src),
 			Index:     uint16(i),
 			Extension: ext,
 			Chapter:   chapter,
