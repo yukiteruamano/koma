@@ -35,7 +35,7 @@
 
 ## Features
 
-- __3 Built-in sources__ - [MangaDex](https://mangadex.org), [Mangapill](https://mangapill.com) & [WeebCentral](https://weebcentral.com)
+- __4 Built-in sources__ - [MangaDex](https://mangadex.org), [Mangapill](https://mangapill.com), [WeebCentral](https://weebcentral.com) & [Zonatmo](https://zonatmo.org)
 - __Download & Read Manga__ - I mean, it would be strange if you couldn't, right?
 - __Caching__ - Koma will cache as much data as possible, so you don't have to wait for it to download the same data over and over again.
 - __4 Different export formats__ - PDF, CBZ, ZIP and plain images
@@ -252,8 +252,10 @@ For more information see [GitHub](https://github.com/yukiteruamano/koma)
 This fork includes the following changes compared to the original [metafates/mangal](https://github.com/metafates/mangal):
 
 ### Security
-- Upgraded Go 1.18 to 1.23.0
-- Fixed 9 CVEs in `golang.org/x/net`, `golang.org/x/image`, `google.golang.org/protobuf`
+- Upgraded Go 1.18 to 1.26
+- Upgraded all dependencies to their latest versions; `govulncheck` reports no known vulnerabilities
+- Config file is written with `0600` permissions and Anilist credentials are masked in `config` output
+- Cache files are written atomically (temp + rename) so a crash cannot truncate them
 
 ### Bug fixes
 - Fixed MangaDex chapter pagination skipping pages on language filter (#172)
@@ -266,6 +268,9 @@ This fork includes the following changes compared to the original [metafates/man
 - Fixed long vertical pages clipped in PDF export (#192)
 - Fixed TUI spinner not animating during loading
 - Fixed "Anilsit" typo in Anilist integration (#209)
+- Fixed WeebCentral relative URL handling (chapters and images)
+- Fixed mini-mode navigation deadlock, resume and search panics
+- Fixed TUI goroutine leaks and data races in the download/read flows
 
 ### New features
 - MangaDex chapter deduplication across scanlation groups, preferring official translations (#162)
@@ -273,16 +278,22 @@ This fork includes the following changes compared to the original [metafates/man
 - Chapter publish date from source used in ComicInfo metadata (#164)
 - Download on enter when `tui.read_on_enter` is false (#156)
 - `downloader.escape_whitespace` option to control filename whitespace handling (#159)
+- Configurable page-download concurrency (`downloader.concurrency`) and network retries/backoff (`network.*`)
+- MangaDex and Zonatmo search/chapter caching with back-reference rehydration
+- Dependency health checks via `make check-deps-version` (outdated deps + vulnerability scan)
+- Zonatmo built-in source
 
 ### Removed
 - Manganelo and Manganato built-in scrapers (domains defunct, Cloudflare-blocked)
+- Lua-based custom scrapers, the GitHub scraper installer and the `koma sources` / `koma run` commands
+  (scrapers are now Go-only)
 
 ## Roadmap
 
 Planned for future releases:
 
-- [ ] Inline mode output directory override (#186)
-- [x] Add new manga sources (WeebCentral, etc.)
+- [x] Inline mode output directory override (#186)
+- [x] Add new manga sources (WeebCentral, Zonatmo, etc.)
 - [x] GitHub Releases with GoReleaser
 - [x] Homebrew tap
 - [x] Docker image
