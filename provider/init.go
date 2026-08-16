@@ -5,6 +5,7 @@ import (
 	"github.com/yukiteruamano/koma/provider/mangadex"
 	"github.com/yukiteruamano/koma/provider/mangapill"
 	"github.com/yukiteruamano/koma/provider/weebcentral"
+	"github.com/yukiteruamano/koma/provider/zonatmo"
 	"github.com/yukiteruamano/koma/source"
 )
 
@@ -21,6 +22,13 @@ var builtinProviders = []*Provider{
 		Name: weebcentral.Name,
 		CreateSource: func() (source.Source, error) {
 			return weebcentral.New(), nil
+		},
+	},
+	{
+		ID:   zonatmo.ID,
+		Name: zonatmo.Name,
+		CreateSource: func() (source.Source, error) {
+			return zonatmo.New(), nil
 		},
 	},
 }
