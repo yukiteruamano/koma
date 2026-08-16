@@ -15,7 +15,6 @@ import (
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/history"
-	"github.com/yukiteruamano/koma/installer"
 	key2 "github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/provider"
 	"github.com/yukiteruamano/koma/source"
@@ -45,29 +44,25 @@ type progressDoneMsg struct{}
 type statefulBubble struct {
 	state         state
 	statesHistory util.Stack[state]
-	loading       bool
 
 	keymap *statefulKeymap
 
 	// components
-	spinnerC         spinner.Model
-	inputC           textinput.Model
-	scrapersInstallC list.Model
-	historyC         list.Model
-	sourcesC         list.Model
-	mangasC          list.Model
-	chaptersC        list.Model
-	anilistC         list.Model
-	progressC        progress.Model
-	helpC            help.Model
+	spinnerC  spinner.Model
+	inputC    textinput.Model
+	historyC  list.Model
+	sourcesC  list.Model
+	mangasC   list.Model
+	chaptersC list.Model
+	anilistC  list.Model
+	progressC progress.Model
+	helpC     help.Model
 
 	selectedProviders map[*provider.Provider]struct{}
 	selectedSources   []source.Source
 	selectedManga     *source.Manga
 	selectedChapters  map[*source.Chapter]struct{} // mathematical set
 
-	scrapersLoadedChannel       chan []*installer.Scraper
-	scraperInstalledChannel     chan *installer.Scraper
 	sourcesLoadedChannel        chan []source.Source
 	foundMangasChannel          chan []*source.Manga
 	foundChaptersChannel        chan []*source.Chapter
@@ -78,8 +73,7 @@ type statefulBubble struct {
 	progressDone                chan struct{}
 	progressDoneOnce            sync.Once
 	errorChannel                chan error
-
-	progressStatus string
+	progressStatus              string
 
 	chaptersToDownload util.Stack[*source.Chapter]
 
@@ -152,9 +146,6 @@ func (b *statefulBubble) resize(width, height int) {
 	listWidth := width - xx
 	listHeight := height - yy
 
-	b.scrapersInstallC.SetSize(listWidth, listHeight)
-	b.scrapersInstallC.Help.Width = listWidth
-
 	b.historyC.SetSize(listWidth, listHeight)
 	b.historyC.Help.Width = listWidth
 
@@ -178,12 +169,10 @@ func (b *statefulBubble) resize(width, height int) {
 }
 
 func (b *statefulBubble) startLoading() tea.Cmd {
-	b.loading = true
 	return tea.Batch(b.mangasC.StartSpinner(), b.chaptersC.StartSpinner(), b.spinnerC.Tick)
 }
 
 func (b *statefulBubble) stopLoading() tea.Cmd {
-	b.loading = false
 	b.mangasC.StopSpinner()
 	b.chaptersC.StopSpinner()
 	return nil
@@ -195,8 +184,6 @@ func newBubble() *statefulBubble {
 		statesHistory: util.Stack[state]{},
 		keymap:        keymap,
 
-		scrapersLoadedChannel:       make(chan []*installer.Scraper),
-		scraperInstalledChannel:     make(chan *installer.Scraper),
 		sourcesLoadedChannel:        make(chan []source.Source),
 		foundMangasChannel:          make(chan []*source.Manga),
 		foundChaptersChannel:        make(chan []*source.Chapter),
@@ -263,13 +250,6 @@ func newBubble() *statefulBubble {
 
 	bubble.progressC = progress.New(progress.WithDefaultGradient())
 
-	bubble.scrapersInstallC = makeList("Install Scrapers", true, &listOptions{
-		TitleStyle: mo.Some(
-			style.NewColored("#212529", "#ced4da").Padding(0, 1),
-		),
-	})
-	bubble.scrapersInstallC.SetStatusBarItemName("scraper", "scrapers")
-
 	bubble.historyC = makeList("History", true, &listOptions{})
 	bubble.sourcesC.SetStatusBarItemName("chapter", "chapters")
 
@@ -313,7 +293,6 @@ func newBubble() *statefulBubble {
 
 func (b *statefulBubble) loadProviders() tea.Cmd {
 	providers := provider.Builtins()
-	customProviders := provider.Customs()
 
 	var items []list.Item
 	for _, p := range providers {
@@ -327,18 +306,7 @@ func (b *statefulBubble) loadProviders() tea.Cmd {
 		return strings.Compare(b.FilterValue(), a.FilterValue())
 	})
 
-	var customItems []list.Item
-	for _, p := range customProviders {
-		customItems = append(customItems, &listItem{
-			internal: p,
-		})
-	}
-	slices.SortFunc(customItems, func(a, b list.Item) int {
-		return strings.Compare(a.FilterValue(), b.FilterValue())
-	})
-
-	// built-in providers should come first
-	return b.sourcesC.SetItems(append(items, customItems...))
+	return b.sourcesC.SetItems(items)
 }
 
 func (b *statefulBubble) loadHistory() (tea.Cmd, error) {

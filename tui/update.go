@@ -13,7 +13,6 @@ import (
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/history"
-	"github.com/yukiteruamano/koma/installer"
 	key2 "github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/open"
 	"github.com/yukiteruamano/koma/provider"
@@ -84,13 +83,6 @@ func (b *statefulBubble) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				cmd = onListBack(&b.sourcesC)
-			case scrapersInstallState:
-				if b.scrapersInstallC.FilterState() != list.Unfiltered {
-					b.scrapersInstallC, cmd = b.scrapersInstallC.Update(msg)
-					return b, cmd
-				}
-
-				cmd = onListBack(&b.scrapersInstallC)
 			}
 
 			b.previousState()
@@ -124,44 +116,11 @@ func (b *statefulBubble) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return b.updateDownload(msg)
 	case downloadDoneState:
 		return b.updateDownloadDone(msg)
-	case scrapersInstallState:
-		return b.updateScrapersInstall(msg)
 	case errorState:
 		return b.updateError(msg)
 	}
 
 	panic("unreachable")
-}
-
-func (b *statefulBubble) updateScrapersInstall(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
-	if len(b.scrapersInstallC.Items()) == 0 {
-		b.newState(loadingState)
-		return b, tea.Batch(b.startLoading(), b.loadScrapers(), b.waitForScrapersLoaded())
-	}
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case b.scrapersInstallC.FilterState() == list.Filtering:
-			break
-		case key.Matches(msg, b.keymap.openURL):
-			url := b.scrapersInstallC.SelectedItem().(*listItem).internal.(*installer.Scraper).GithubURL()
-			err := open.Run(url)
-			if err != nil {
-				b.lastError = err
-				b.newState(errorState)
-			}
-		case key.Matches(msg, b.keymap.selectOne, b.keymap.confirm):
-			scraper := b.scrapersInstallC.SelectedItem().(*listItem).internal.(*installer.Scraper)
-			b.newState(loadingState)
-			return b, tea.Batch(b.startLoading(), b.installScraper(scraper), b.waitForScraperInstallation())
-		}
-	}
-
-	b.scrapersInstallC, cmd = b.scrapersInstallC.Update(msg)
-	return b, cmd
 }
 
 func (b *statefulBubble) updateLoading(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -200,13 +159,6 @@ func (b *statefulBubble) updateLoading(msg tea.Msg) (tea.Model, tea.Cmd) {
 		b.newState(anilistSelectState)
 		b.anilistC.Select(marked)
 		return b, tea.Batch(cmd, b.stopLoading())
-	case []*installer.Scraper:
-		b.newState(scrapersInstallState)
-		return b, b.stopLoading()
-	case *installer.Scraper:
-		b.newState(scrapersInstallState)
-		b.scrapersInstallC.NewStatusMessage(fmt.Sprintf("Installed %s", msg.Name))
-		return b, b.stopLoading()
 	case []*source.Manga:
 		items := make([]list.Item, len(msg))
 		for i, m := range msg {
@@ -481,8 +433,10 @@ func (b *statefulBubble) updateChapters(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case *anilist.Manga:
-		cmd = b.chaptersC.NewStatusMessage(fmt.Sprintf(`Linked to %s %s`, style.Fg(color.Orange)(msg.Name()), style.Faint(msg.SiteURL)))
-		return b, cmd
+		if msg != nil {
+			cmd = b.chaptersC.NewStatusMessage(fmt.Sprintf(`Linked to %s %s`, style.Fg(color.Orange)(msg.Name()), style.Faint(msg.SiteURL)))
+			return b, cmd
+		}
 	case tea.KeyMsg:
 		switch {
 		case b.chaptersC.FilterState() == list.Filtering:
@@ -565,7 +519,9 @@ func (b *statefulBubble) updateChapters(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			chapter := b.chaptersC.SelectedItem().(*listItem).internal.(*source.Chapter)
 			b.newState(readState)
-			return b, tea.Batch(b.readChapter(chapter), b.waitForChapterRead(), b.startLoading())
+			b.currentDownloadingChapter = chapter
+			b.resetProgressDone()
+			return b, tea.Batch(b.readChapter(chapter), b.waitForChapterRead(), b.waitForProgress(), b.startLoading())
 		case key.Matches(msg, b.keymap.confirm):
 			if len(b.selectedChapters) != 0 {
 				b.newState(confirmState)
@@ -577,7 +533,9 @@ func (b *statefulBubble) updateChapters(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				if viper.GetBool(key2.TUIReadOnEnter) {
 					b.newState(readState)
-					return b, tea.Batch(b.readChapter(chapter), b.waitForChapterRead(), b.startLoading())
+					b.currentDownloadingChapter = chapter
+					b.resetProgressDone()
+					return b, tea.Batch(b.readChapter(chapter), b.waitForChapterRead(), b.waitForProgress(), b.startLoading())
 				} else {
 					b.selectedChapters[chapter] = struct{}{}
 					b.newState(confirmState)
@@ -649,6 +607,7 @@ func (b *statefulBubble) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 				b.chaptersToDownload.Push(chapter)
 			}
 			b.newState(downloadState)
+			b.resetProgressDone()
 
 			chapter := b.chaptersToDownload.Pop()
 			b.currentDownloadingChapter = chapter
@@ -670,7 +629,13 @@ func (b *statefulBubble) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (b *statefulBubble) updateRead(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	switch msg.(type) {
+	switch msg := msg.(type) {
+	case progressMsg:
+		b.progressStatus = msg.status
+		return b, b.waitForProgress()
+	case progressDoneMsg:
+		// read finished; the pending waitForProgress was released
+		return b, nil
 	case struct{}:
 		b.stopLoading()
 		b.previousState()
@@ -761,6 +726,7 @@ func (b *statefulBubble) updateDownloadDone(msg tea.Msg) (tea.Model, tea.Cmd) {
 			b.failedChapters = make([]*source.Chapter, 0)
 			b.succededChapters = make([]*source.Chapter, 0)
 			b.newState(downloadState)
+			b.resetProgressDone()
 
 			chapter := b.chaptersToDownload.Pop()
 			b.currentDownloadingChapter = chapter

@@ -2,89 +2,17 @@ package tui
 
 import (
 	"fmt"
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yukiteruamano/koma/anilist"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/downloader"
-	"github.com/yukiteruamano/koma/installer"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/provider"
 	"github.com/yukiteruamano/koma/source"
 	"github.com/yukiteruamano/koma/style"
 	"github.com/yukiteruamano/koma/util"
-	"slices"
-	"strings"
 	"sync"
 )
-
-func (b *statefulBubble) loadScrapers() tea.Cmd {
-	return func() tea.Msg {
-		b.progressStatus = "Loading scrapers"
-		scrapers, err := installer.Scrapers()
-		if err != nil {
-			log.Error(err)
-			b.errorChannel <- err
-			return nil
-		}
-		b.progressStatus = "Scrapers Loaded"
-
-		slices.SortFunc(scrapers, func(a, b *installer.Scraper) int {
-			return strings.Compare(a.Name, b.Name)
-		})
-
-		var items = make([]list.Item, len(scrapers))
-		for i, s := range scrapers {
-			items[i] = &listItem{
-				internal: s,
-			}
-		}
-
-		cmd := b.scrapersInstallC.SetItems(items)
-		b.scrapersLoadedChannel <- scrapers
-		return cmd
-	}
-}
-
-func (b *statefulBubble) waitForScrapersLoaded() tea.Cmd {
-	return func() tea.Msg {
-		select {
-		case res := <-b.scrapersLoadedChannel:
-			return res
-		case err := <-b.errorChannel:
-			b.lastError = err
-			return err
-		}
-	}
-}
-
-func (b *statefulBubble) installScraper(s *installer.Scraper) tea.Cmd {
-	return func() tea.Msg {
-		b.progressStatus = fmt.Sprintf("Installing %s", s.Name)
-		err := s.Install()
-		if err != nil {
-			log.Error(err)
-			b.errorChannel <- err
-		} else {
-			log.Info("scraper " + s.Name + " installed")
-			b.scraperInstalledChannel <- s
-		}
-
-		return nil
-	}
-}
-
-func (b *statefulBubble) waitForScraperInstallation() tea.Cmd {
-	return func() tea.Msg {
-		select {
-		case res := <-b.scraperInstalledChannel:
-			return res
-		case err := <-b.errorChannel:
-			b.lastError = err
-			return err
-		}
-	}
-}
 
 func (b *statefulBubble) loadSources(ps []*provider.Provider) tea.Cmd {
 	return func() tea.Msg {
@@ -112,7 +40,15 @@ func (b *statefulBubble) loadSources(ps []*provider.Provider) tea.Cmd {
 
 		wg.Wait()
 
-		b.sourcesLoadedChannel <- sources
+		// drop sources that failed to load so the list has no nil entries
+		valid := sources[:0]
+		for _, s := range sources {
+			if s != nil {
+				valid = append(valid, s)
+			}
+		}
+
+		b.sourcesLoadedChannel <- valid
 
 		return nil
 	}
@@ -124,7 +60,6 @@ func (b *statefulBubble) waitForSourcesLoaded() tea.Cmd {
 		case res := <-b.sourcesLoadedChannel:
 			return res
 		case err := <-b.errorChannel:
-			b.lastError = err
 			return err
 		}
 	}
@@ -159,6 +94,7 @@ func (b *statefulBubble) searchManga(query string) tea.Cmd {
 
 		var mangas []*source.Manga
 		for _, result := range results {
+			// a provider may have failed and left its slot nil
 			mangas = append(mangas, result...)
 		}
 
@@ -176,7 +112,6 @@ func (b *statefulBubble) waitForMangas() tea.Cmd {
 		case found := <-b.foundMangasChannel:
 			return found
 		case err := <-b.errorChannel:
-			b.lastError = err
 			return err
 		}
 	}
@@ -204,7 +139,6 @@ func (b *statefulBubble) waitForChapters() tea.Cmd {
 		case found := <-b.foundChaptersChannel:
 			return found
 		case err := <-b.errorChannel:
-			b.lastError = err
 			return err
 		}
 	}
@@ -212,9 +146,11 @@ func (b *statefulBubble) waitForChapters() tea.Cmd {
 
 func (b *statefulBubble) readChapter(chapter *source.Chapter) tea.Cmd {
 	return func() tea.Msg {
-		b.currentDownloadingChapter = chapter
 		err := downloader.Read(chapter, func(s string) {
-			b.progressStatus = s
+			select {
+			case b.progressChannel <- progressMsg{status: s}:
+			default:
+			}
 		})
 
 		if err != nil {
@@ -222,6 +158,9 @@ func (b *statefulBubble) readChapter(chapter *source.Chapter) tea.Cmd {
 		} else {
 			b.chapterReadChannel <- struct{}{}
 		}
+
+		// release any pending waitForProgress command
+		b.progressDoneOnce.Do(func() { close(b.progressDone) })
 
 		return nil
 	}
@@ -233,7 +172,6 @@ func (b *statefulBubble) waitForChapterRead() tea.Cmd {
 		case res := <-b.chapterReadChannel:
 			return res
 		case err := <-b.errorChannel:
-			b.lastError = err
 			return err
 		}
 	}
@@ -264,16 +202,24 @@ func (b *statefulBubble) waitForProgress() tea.Cmd {
 	}
 }
 
+// resetProgressDone recreates the progress-done signal so a second download
+// batch (e.g. retrying failed chapters) gets a fresh channel.
+func (b *statefulBubble) resetProgressDone() {
+	b.progressDone = make(chan struct{})
+	b.progressDoneOnce = sync.Once{}
+}
+
 func (b *statefulBubble) fetchAndSetAnilist(manga *source.Manga) tea.Cmd {
 	return func() tea.Msg {
 		alManga, err := anilist.FindClosest(manga.Name)
 		if err != nil {
 			// this error is not that important, we can ignore t
 			log.Warn(err)
-		} else {
-			b.closestAnilistMangaChannel <- alManga
+			alManga = nil
 		}
 
+		// always send, so waitForAnilistFetchAndSet does not block forever
+		b.closestAnilistMangaChannel <- alManga
 		return nil
 	}
 }
@@ -307,7 +253,6 @@ func (b *statefulBubble) waitForAnilist() tea.Cmd {
 		case found := <-b.fetchedAnilistMangasChannel:
 			return found
 		case err := <-b.errorChannel:
-			b.lastError = err
 			return err
 		}
 	}

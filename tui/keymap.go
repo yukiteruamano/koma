@@ -143,10 +143,6 @@ func (k *statefulKeymap) help() ([]key.Binding, []key.Binding) {
 	}
 
 	switch k.state {
-	case scrapersInstallState:
-		viewSource := withDescription(k.openURL, "view source")
-		install := withDescription(k.confirm, "install")
-		return to2(h(install, viewSource))
 	case loadingState:
 		return to2(h(k.forceQuit, k.back))
 	case historyState:

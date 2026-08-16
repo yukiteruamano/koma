@@ -6,16 +6,13 @@ import (
 
 type Options struct {
 	Continue bool
-	Install  bool
 }
 
 func Run(options *Options) error {
 
 	bubble := newBubble()
 
-	if options.Install {
-		bubble.newState(scrapersInstallState)
-	} else if options.Continue {
+	if options.Continue {
 		_, err := bubble.loadHistory()
 		if err != nil {
 			return err

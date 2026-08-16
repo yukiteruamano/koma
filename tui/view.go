@@ -17,8 +17,6 @@ import (
 
 func (b *statefulBubble) View() string {
 	switch b.state {
-	case scrapersInstallState:
-		return b.viewScrapersInstallState()
 	case loadingState:
 		return b.viewLoading()
 	case historyState:
@@ -223,10 +221,6 @@ func (b *statefulBubble) viewError() string {
 			strings.Split(wrap.String(style.Italic(b.errorPlot), b.width)+"\n\n"+errorMsg, "\n")...,
 		),
 	)
-}
-
-func (b *statefulBubble) viewScrapersInstallState() string {
-	return listExtraPaddingStyle.Render(b.scrapersInstallC.View())
 }
 
 var (

@@ -3,8 +3,7 @@ package tui
 type state int
 
 const (
-	scrapersInstallState state = iota + 1
-	errorState
+	errorState state = iota + 1
 	loadingState
 	historyState
 	sourcesState
