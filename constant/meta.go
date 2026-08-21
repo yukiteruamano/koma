@@ -3,8 +3,7 @@ package constant
 import "math/rand"
 
 const (
-	Koma    = "koma"
-	Version = "1.0.0"
+	Koma = "koma"
 )
 
 // UserAgent is kept for backwards compatibility; use RandomUserAgent() for rotation.

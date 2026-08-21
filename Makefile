@@ -1,6 +1,7 @@
 MAKEFLAGS += --silent
 
-ldflags := -X 'github.com/yukiteruamano/koma/constant.BuiltAt=$(shell date -u)'
+ldflags := -X 'github.com/yukiteruamano/koma/constant.Version=$(shell git describe --tags --abbrev=0 2>/dev/null | sed s/^v// || echo 1.2.3)'
+ldflags += -X 'github.com/yukiteruamano/koma/constant.BuiltAt=$(shell date -u)'
 ldflags += -X 'github.com/yukiteruamano/koma/constant.BuiltBy=$(shell whoami)'
 ldflags += -X 'github.com/yukiteruamano/koma/constant.Revision=$(shell git rev-parse --short HEAD)'
 ldflags += -s

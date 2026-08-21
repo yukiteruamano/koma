@@ -19,6 +19,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
+      - -X 'github.com/yukiteruamano/koma/constant.Version={{ .Version }}'
       - -X 'github.com/yukiteruamano/koma/constant.BuiltAt={{ .Date }}'
       - -X 'github.com/yukiteruamano/koma/constant.BuiltBy={{ .Env.USER }}'
       - -X 'github.com/yukiteruamano/koma/constant.Revision={{ .ShortCommit }}'
