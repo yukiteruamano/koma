@@ -113,34 +113,6 @@ docker_manifests:
       - "ghcr.io/yukiteruamano/koma:{{ .Tag }}-arm64"
     skip_push: false
 
-brews:
-  - name: koma
-
-    repository:
-      owner: yukiteruamano
-      name: homebrew-koma
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    homepage: "https://github.com/yukiteruamano/koma"
-    description: "The ultimate CLI manga downloader!"
-    license: "MIT"
-    skip_upload: false
-
-    test: |
-      system "#{bin}/koma -v"
-
-    install: |-
-      bin.install "koma"
-      bash_completion.install "completions/koma.bash" => "koma"
-      zsh_completion.install "completions/koma.zsh" => "_koma"
-      fish_completion.install "completions/koma.fish"
-
 release:
   github:
     owner: yukiteruamano
