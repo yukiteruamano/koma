@@ -18,7 +18,7 @@ RUN mkdir -p "${KOMA_DOWNLOADER_PATH}" && addgroup -g "${KOMA_GID}" "${KOMA_USER
     "${KOMA_USER}" && \
     chown abc:abc /config "${KOMA_DOWNLOADER_PATH}"
 
-COPY ${TARGETPLATFORM}/koma /usr/local/bin/koma
+COPY koma /usr/local/bin/koma
 RUN chmod +x /usr/local/bin/koma
 USER "${KOMA_USER}"
 ENTRYPOINT ["/usr/local/bin/koma"]
