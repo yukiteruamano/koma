@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
-	"github.com/yukiteruamano/koma/constant"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/key"
 	"golang.org/x/exp/constraints"
@@ -13,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 )
 
@@ -78,14 +76,9 @@ func ClearScreen() {
 		return command.Run()
 	}
 
-	switch runtime.GOOS {
-	case constant.Linux, constant.Darwin:
-		err := run("tput", "clear")
-		if err != nil {
-			_ = run("clear")
-		}
-	case constant.Windows:
-		_ = run("cls")
+	err := run("tput", "clear")
+	if err != nil {
+		_ = run("clear")
 	}
 }
 

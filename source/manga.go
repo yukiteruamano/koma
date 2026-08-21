@@ -200,7 +200,7 @@ func (m *Manga) DownloadCover(overwrite bool, path string, progress func(string)
 		return err
 	}
 
-	req.Header.Set("User-Agent", constant.UserAgent)
+	req.Header.Set("User-Agent", constant.RandomUserAgent())
 
 	resp, err := network.Do(req)
 	if err != nil {

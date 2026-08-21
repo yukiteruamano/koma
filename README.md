@@ -4,7 +4,7 @@
 
 <p align="center">
     <img alt="Linux" src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black">
-    <img alt="Windows" src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white">
+    <img alt="macOS" src="https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white">
     <img alt="Termux" src="https://img.shields.io/badge/Termux-000000?style=for-the-badge&logo=GNOME%20Terminal&logoColor=white">
 </p>
 
@@ -43,7 +43,7 @@
 - __History__ - Resume your reading from where you left off!
 - __Fast?__ - YES.
 - __Monolith__ - ZERO runtime dependencies. Easy to install and use.
-- __Cross-Platform__ - Linux, Windows, Termux, even your toaster. (¬‿¬ )
+- __Cross-Platform__ - Linux, macOS, Termux, even your toaster. (¬‿¬ )
 - __Anilist integration__ - Koma will collect additional data from Anilist and use it to improve your reading experience. It can also sync your progress!
 
 ## Installation
@@ -51,12 +51,6 @@
 ### Pre-compiled binaries
 
 Download the latest release for your platform from the [Releases page](https://github.com/yukiteruamano/koma/releases/latest).
-
-**Windows:**
-1. Download the `.zip` for your architecture
-2. Extract it
-3. Open Command Prompt or PowerShell in that folder
-4. Run `koma.exe`
 
 ### Docker
 

@@ -34,7 +34,7 @@ func New(conf *Configuration) source.Source {
 		r.Headers.Set("Referer", "https://google.com")
 		r.Headers.Set("accept-language", "en-US")
 		r.Headers.Set("Accept", "text/html")
-		r.Headers.Set("User-Agent", constant.UserAgent)
+		r.Headers.Set("User-Agent", constant.RandomUserAgent())
 	})
 
 	// Get mangas
@@ -75,7 +75,7 @@ func New(conf *Configuration) source.Source {
 		r.Headers.Set("Referer", r.Ctx.GetAny("manga").(*source.Manga).URL)
 		r.Headers.Set("accept-language", "en-US")
 		r.Headers.Set("Accept", "text/html")
-		r.Headers.Set("User-Agent", constant.UserAgent)
+		r.Headers.Set("User-Agent", constant.RandomUserAgent())
 	})
 
 	// Get chapters
@@ -120,7 +120,7 @@ func New(conf *Configuration) source.Source {
 		r.Headers.Set("Referer", r.Ctx.GetAny("chapter").(*source.Chapter).URL)
 		r.Headers.Set("accept-language", "en-US")
 		r.Headers.Set("Accept", "text/html")
-		r.Headers.Set("User-Agent", constant.UserAgent)
+		r.Headers.Set("User-Agent", constant.RandomUserAgent())
 	})
 
 	// Get pages

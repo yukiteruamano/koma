@@ -58,7 +58,7 @@ func (s *Source) newRequest(method, url string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", constant.UserAgent)
+	req.Header.Set("User-Agent", constant.RandomUserAgent())
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("Accept-Language", "en-US")
 	return req, nil

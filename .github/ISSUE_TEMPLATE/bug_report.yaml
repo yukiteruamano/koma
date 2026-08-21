@@ -37,9 +37,9 @@ body:
       description: "Which operating system are you using?"
       options:
         - macOS
-        - Windows
         - Linux
         - Termux
+        - Android
     validations:
       required: true
   - type: markdown

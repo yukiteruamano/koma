@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to
 [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Removed
+- Dropped Windows support — removed Windows builds (`windows` GOOS), PowerShell completions (`koma.ps1`), Windows CI (`windows-latest`), Windows docs/badges, `constant.Windows` and `ClearScreen` Windows branch
+
+### Changed
+- Updated User-Agents: replaced single Windows Chrome 120 UA with pool of 12 up-to-date UAs for Linux, macOS and Android (Chrome 151/150/143, Firefox 153, Safari 26, verified Aug 2026 via Exa, UA reduction `0.0.0`/`Android 10; K`), with `RandomUserAgent()` rotation per request
+- Cross-platform docs now list Linux, macOS, Termux (Android)
+
 ## 4.0.6
 
 - Update dependencies
