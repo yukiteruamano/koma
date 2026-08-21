@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strconv"
 
-	levenshtein "github.com/ka-weihe/fast-levenshtein"
+	levenshtein "github.com/yukiteruamano/fast-levenshtein/v2"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

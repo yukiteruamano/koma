@@ -10,15 +10,10 @@ require (
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/darylhjd/mangodex v0.0.0-20211231093527-e4a91c518fa0
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.0.2-0.20251125001511-4d1d9082551e
 	github.com/gocolly/colly/v2 v2.3.0
 	github.com/invopop/jsonschema v0.14.0
-	github.com/ivanpirog/coloredcobra v1.0.1
-	github.com/ka-weihe/fast-levenshtein v0.0.0-20201227151214-4c99ee36a1ba
 	github.com/lithammer/fuzzysearch v1.1.8
-	github.com/metafates/gache v0.0.2
-	github.com/muesli/reflow v0.3.0
 	github.com/pdfcpu/pdfcpu v0.15.0
 	github.com/samber/lo v1.53.0
 	github.com/samber/mo v1.17.0
@@ -28,6 +23,9 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	github.com/yukiteruamano/fast-levenshtein/v2 v2.0.0-20260821035130-8037f08ce71a
+	github.com/yukiteruamano/gache v0.0.0-20260821031929-0b657d548991
+	github.com/yukiteruamano/mangodex v0.0.0-20260821040937-328e5403bda1
 	go.uber.org/goleak v1.3.0
 	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
 	golang.org/x/image v0.45.0
@@ -53,7 +51,6 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/metafates/gache"
+	"github.com/yukiteruamano/gache"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/network"
 	"github.com/yukiteruamano/koma/util"

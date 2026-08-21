@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/reflow/wrap"
 	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/color"
 	"github.com/yukiteruamano/koma/icon"
@@ -209,7 +208,8 @@ func (b *statefulBubble) viewDownloadDone() string {
 }
 
 func (b *statefulBubble) viewError() string {
-	errorMsg := wrap.String(style.New().Italic(true).Foreground(color.Red).Render(b.lastError.Error()), b.width)
+	wrapper := lipgloss.NewStyle().Width(b.width)
+	errorMsg := wrapper.Render(style.New().Italic(true).Foreground(color.Red).Render(b.lastError.Error()))
 	return b.renderLines(
 		true,
 		append([]string{
@@ -218,8 +218,8 @@ func (b *statefulBubble) viewError() string {
 			icon.Get(icon.Fail) + " Uggh, something went wrong. Maybe try again?",
 			"",
 		},
-			strings.Split(wrap.String(style.Italic(b.errorPlot), b.width)+"\n\n"+errorMsg, "\n")...,
-		),
+			strings.Split(wrapper.Render(style.Italic(b.errorPlot))+"\n\n"+errorMsg, "\n")...,
+	),
 	)
 }
 

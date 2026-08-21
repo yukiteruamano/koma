@@ -1,0 +1,35 @@
+version: "2"
+run:
+  timeout: 5m
+  go: "1.26"
+linters:
+  default: all
+  disable:
+    - exhaustive
+    - exhaustruct
+    - forbidigo
+    - gochecknoglobals
+    - gochecknoinits
+    - mnd
+    - nlreturn
+    - testpackage
+    - wrapcheck
+    - depguard
+    - godot
+    - tagliatelle
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gosec
+    - ineffassign
+    - misspell
+    - unused
+    - bodyclose
+formatters:
+  enable:
+    - gofmt
+    - goimports
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

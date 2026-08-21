@@ -2,7 +2,7 @@ package anilist
 
 import (
 	"fmt"
-	levenshtein "github.com/ka-weihe/fast-levenshtein"
+	levenshtein "github.com/yukiteruamano/fast-levenshtein/v2"
 	"github.com/samber/lo"
 	"github.com/yukiteruamano/koma/log"
 	"github.com/yukiteruamano/koma/util"

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/darylhjd/mangodex"
+	"github.com/yukiteruamano/mangodex"
 	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/key"
 	"github.com/yukiteruamano/koma/source"

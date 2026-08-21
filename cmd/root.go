@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,6 +19,15 @@ import (
 	"github.com/yukiteruamano/koma/where"
 	"os"
 	"strings"
+)
+
+var (
+	// ANSI escape codes matching coloredcobra defaults
+	headingStyle  = "\033[1;4;36m" // HiCyan + Bold + Underline
+	commandStyle  = "\033[1;33m"   // HiYellow + Bold
+	execStyle     = "\033[1m"      // Bold
+	flagTypeStyle = "\033[3;34m"   // HiBlue + Italic
+	resetStyle    = "\033[0m"      // Reset
 )
 
 func init() {
@@ -93,16 +101,18 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
 	if viper.GetBool(key.CliColored) {
-		// colored cobra injection
-		cc.Init(&cc.Config{
-			RootCmd:       rootCmd,
-			Headings:      cc.HiCyan + cc.Bold + cc.Underline,
-			Commands:      cc.HiYellow + cc.Bold,
-			Example:       cc.Italic,
-			ExecName:      cc.Bold,
-			Flags:         cc.Bold,
-			FlagsDataType: cc.Italic + cc.HiBlue,
-		})
+		rootCmd.SetHelpTemplate(headingStyle + "Usage:" + resetStyle + " " + execStyle + "{{.UseLine}}" + resetStyle + "\n\n" +
+			headingStyle + "Available Commands:" + resetStyle + "\n" +
+			"{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name \"help\"))}}" + commandStyle + "{{.Name}}" + resetStyle + " " + flagTypeStyle + "{{.Short}}" + resetStyle + "{{ \"\\n\" }}{{end}}{{end}}\n\n" +
+			headingStyle + "Flags:" + resetStyle + "\n" +
+			"{{.LocalFlags.FlagUsagesWrapped 80}}\n\n" +
+			headingStyle + "Global Flags:" + resetStyle + "\n" +
+			"{{.InheritedFlags.FlagUsagesWrapped 80}}")
+		rootCmd.SetUsageTemplate(headingStyle + "Usage:" + resetStyle + " " + execStyle + "{{.UseLine}}" + resetStyle + "\n\n" +
+			headingStyle + "Flags:" + resetStyle + "\n" +
+			"{{.LocalFlags.FlagUsagesWrapped 80}}\n\n" +
+			headingStyle + "Global Flags:" + resetStyle + "\n" +
+			"{{.InheritedFlags.FlagUsagesWrapped 80}}")
 	}
 
 	if err := rootCmd.Execute(); err != nil {

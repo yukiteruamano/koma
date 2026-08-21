@@ -1,7 +1,7 @@
 package mangadex
 
 import (
-	"github.com/darylhjd/mangodex"
+	"github.com/yukiteruamano/mangodex"
 	"github.com/yukiteruamano/koma/source"
 )
 

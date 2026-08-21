@@ -1,7 +1,7 @@
 package query
 
 import (
-	"github.com/metafates/gache"
+	"github.com/yukiteruamano/gache"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/where"
 )

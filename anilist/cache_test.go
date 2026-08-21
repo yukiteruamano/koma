@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/metafates/gache"
+	"github.com/yukiteruamano/gache"
 	"github.com/samber/mo"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/where"

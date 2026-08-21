@@ -3,7 +3,7 @@ package history
 import (
 	"sync"
 
-	"github.com/metafates/gache"
+	"github.com/yukiteruamano/gache"
 	"github.com/spf13/viper"
 	"github.com/yukiteruamano/koma/filesystem"
 	"github.com/yukiteruamano/koma/integration"

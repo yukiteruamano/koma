@@ -23,3 +23,7 @@ func (GacheFs) Remove(name string) error {
 func (GacheFs) Rename(oldname, newname string) error {
 	return Api().Rename(oldname, newname)
 }
+
+func (GacheFs) Stat(name string) (os.FileInfo, error) {
+	return Api().Stat(name)
+}
